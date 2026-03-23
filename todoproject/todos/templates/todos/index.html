@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Brain</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #161b22;
+            --surface-2: #1c2230;
+            --border: #21293a;
+            --accent: #58a6ff;
+            --accent-dim: rgba(88,166,255,0.12);
+            --green: #3fb950;
+            --green-dim: rgba(63,185,80,0.12);
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --text-faint: #30363d;
+            --danger: #f85149;
+            --radius: 6px;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        html[data-theme="light"] {
+            --bg: #f6f8fa;
+            --surface: #ffffff;
+            --surface-2: #f0f2f5;
+            --border: #d0d7de;
+            --accent: #0969da;
+            --accent-dim: rgba(9,105,218,0.08);
+            --green: #1a7f37;
+            --green-dim: rgba(26,127,55,0.1);
+            --text: #1f2328;
+            --text-muted: #656d76;
+            --text-faint: #8c959f;
+            --danger: #d1242f;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 220px 1fr 280px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .sidebar-logo h2 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-logo span {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            padding: 8px 20px 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 20px;
+            font-size: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .nav-item.active {
+            color: var(--text);
+            background: var(--accent-dim);
+            border-left-color: var(--accent);
+        }
+
+        .nav-item svg { flex-shrink: 0; opacity: 0.7; }
+        .nav-item.active svg { opacity: 1; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 20px 0;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-faint);
+            font-family: var(--font-mono);
+        }
+
+        /* Main */
+        .main {
+            display: flex;
+            flex-direction: column;
+            max-width: 680px;
+            padding: 48px 48px 80px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .page-header .meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* Add form */
+        .add-form {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 32px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .add-form:focus-within {
+            border-color: var(--accent);
+        }
+
+        .add-prefix {
+            padding: 0 12px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--accent);
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .add-form input {
+            flex: 1;
+            padding: 13px 0;
+            font-size: 15px;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        .add-form input::placeholder { color: var(--text-faint); }
+
+        .add-form button {
+            padding: 11px 18px;
+            background: var(--surface-2);
+            color: var(--text-muted);
+            border: none;
+            border-left: 1px solid var(--border);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: color 0.15s, background 0.15s;
+            white-space: nowrap;
+        }
+
+        .add-form button:hover {
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        /* Section header */
+        .section-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Todo list */
+        .todo-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border-radius: var(--radius);
+            transition: background 0.12s;
+            group: true;
+        }
+
+        .todo-item:hover { background: var(--surface); }
+
+        /* Checkbox */
+        .check-form button {
+            width: 18px;
+            height: 18px;
+            border-radius: 3px;
+            border: 1.5px solid var(--text-faint);
+            background: none;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .check-form button:hover { border-color: var(--accent); }
+
+        .todo-item.done .check-form button {
+            background: var(--green);
+            border-color: var(--green);
+        }
+
+        .todo-item.done .check-form button::after {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 7px;
+            border: 1.5px solid #fff;
+            border-top: none;
+            border-left: none;
+            transform: rotate(45deg) translate(-0.5px, -1px);
+        }
+
+        .todo-title {
+            flex: 1;
+            font-size: 15px;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .todo-item.done .todo-title {
+            color: var(--text-faint);
+            text-decoration: line-through;
+            text-decoration-color: var(--text-faint);
+        }
+
+        .todo-meta {
+            font-size: 11px;
+            color: var(--text-faint);
+            font-family: var(--font-mono);
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .todo-item:hover .todo-meta { opacity: 1; }
+
+        .delete-form button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-faint);
+            font-size: 14px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: color 0.15s, background 0.15s;
+            opacity: 0;
+            line-height: 1;
+        }
+
+        .todo-item:hover .delete-form button { opacity: 1; }
+        .delete-form button:hover { color: var(--danger); background: rgba(248,81,73,0.1); }
+
+        /* Divider between active/done */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 16px 0 8px;
+        }
+
+        /* Empty */
+        .empty {
+            padding: 32px 0;
+            font-size: 13px;
+            color: var(--text-faint);
+            font-family: var(--font-mono);
+        }
+
+        /* Stats bar */
+        .stats {
+            display: flex;
+            gap: 24px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+            font-family: var(--font-mono);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Right panel */
+        .right-panel {
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            padding: 28px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .widget {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .widget-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        /* Clock */
+        .clock {
+            font-family: var(--font-mono);
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 3px;
+            line-height: 1;
+        }
+        .clock-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Today widget */
+        .today-elapsed {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .today-track {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 4px 0;
+        }
+        .today-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            border-radius: 2px;
+        }
+        .today-remain {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Brain dump */
+        .dump-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .dump-count {
+            font-family: var(--font-mono);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .dump-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Scratchpad */
+        .widget.scratchpad-widget {
+            flex: 1;
+            min-height: 0;
+        }
+        .scratchpad {
+            flex: 1;
+            min-height: 80px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 12px;
+            font-family: inherit;
+            line-height: 1.7;
+            resize: none;
+            width: 100%;
+        }
+        .scratchpad::placeholder { color: var(--text-faint); }
+
+        @media (max-width: 1200px) {
+            body { grid-template-columns: 220px 1fr 240px; }
+        }
+        @media (max-width: 900px) {
+            body { grid-template-columns: 220px 1fr; }
+            .right-panel { display: none; }
+        }
+        @media (max-width: 640px) {
+            body { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main { padding: 20px 16px 90px; }
+            .page-header h1 { font-size: 20px; }
+            .add-form input { font-size: 16px; }
+            .todo-item { padding: 13px 8px; }
+            .todo-title { font-size: 15px; }
+            .check-form button { width: 22px; height: 22px; }
+            .delete-form button { opacity: 1; }
+        }
+
+        /* Mobile bottom nav */
+        .mobile-nav {
+            display: none;
+        }
+        @media (max-width: 640px) {
+            .mobile-nav {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+                z-index: 100;
+                padding: 0;
+            }
+            .mobile-nav a {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                padding: 10px 0 14px;
+                text-decoration: none;
+                color: var(--text-muted);
+                font-size: 10px;
+                font-weight: 500;
+                transition: color 0.15s;
+            }
+            .mobile-nav a.active { color: var(--accent); }
+            .mobile-nav a svg { width: 20px; height: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <h2>Second Brain</h2>
+            <span>personal workspace</span>
+        </div>
+
+        <span class="nav-label">Views</span>
+        <a class="nav-item active" href="{% url 'index' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/>
+            </svg>
+            All Tasks
+        </a>
+        <a class="nav-item" href="{% url 'notes_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="2" width="12" height="12" rx="1"/>
+                <path d="M5 5h6M5 8h6M5 11h4"/>
+            </svg>
+            Notes
+        </a>
+        <a class="nav-item" href="{% url 'search' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+            Search
+        </a>
+
+        <span class="nav-label" style="margin-top:12px;">Tags</span>
+        <div class="nav-item">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#58a6ff"/></svg>
+            Work
+        </div>
+        <div class="nav-item">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#3fb950"/></svg>
+            Personal
+        </div>
+        <div class="nav-item">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#d29922"/></svg>
+            Ideas
+        </div>
+
+        <div class="sidebar-footer">
+            <div style="margin-bottom:8px; color: var(--text-muted);">{{ request.user.username }}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none;border:none;color:var(--text-faint);font-size:11px;font-family:var(--font-mono);cursor:pointer;padding:0;">sign out</button>
+                </form>
+                <div style="display:flex;gap:6px;">
+                    <button onclick="showShortcuts()" title="Keyboard shortcuts" style="background:none;border:1px solid var(--border);color:var(--text-faint);font-size:11px;cursor:pointer;padding:2px 7px;border-radius:4px;font-family:var(--font-mono);">?</button>
+                    <button id="theme-toggle" title="Toggle light/dark" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:13px;cursor:pointer;padding:3px 7px;border-radius:4px;line-height:1;">☀</button>
+                </div>
+            </div>
+            <div>{% now "Y-m-d" %}</div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="page-header">
+            <h1>All Tasks</h1>
+            <p class="meta">{% now "l, F j" %} &nbsp;·&nbsp; capturing everything</p>
+        </div>
+
+        <form class="add-form" method="post" action="{% url 'add' %}">
+            {% csrf_token %}
+            <span class="add-prefix">&gt;_</span>
+            <input type="text" name="title" placeholder="Capture a thought…" required autofocus autocomplete="off">
+            <button type="submit">enter</button>
+        </form>
+
+        <p class="section-label">Open</p>
+        <ul class="todo-list">
+            {% for todo in todos %}
+            {% if not todo.completed %}
+            <li class="todo-item">
+                <form class="check-form" method="post" action="{% url 'toggle' todo.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" title="Complete"></button>
+                </form>
+                <span class="todo-title">{{ todo.title }}</span>
+                <span class="todo-meta">{{ todo.created_at|date:"M j" }}</span>
+                <form class="delete-form" method="post" action="{% url 'delete' todo.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" title="Remove">✕</button>
+                </form>
+            </li>
+            {% endif %}
+            {% empty %}
+            <li class="empty">// nothing here yet — add your first task above</li>
+            {% endfor %}
+        </ul>
+
+        {% for todo in todos %}{% if todo.completed %}{% if forloop.first %}
+        <div class="divider"></div>
+        <p class="section-label">Done</p>
+        <ul class="todo-list">
+        {% endif %}
+            <li class="todo-item done">
+                <form class="check-form" method="post" action="{% url 'toggle' todo.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" title="Reopen"></button>
+                </form>
+                <span class="todo-title">{{ todo.title }}</span>
+                <span class="todo-meta">{{ todo.created_at|date:"M j" }}</span>
+                <form class="delete-form" method="post" action="{% url 'delete' todo.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" title="Remove">✕</button>
+                </form>
+            </li>
+        {% if forloop.last %}</ul>{% endif %}
+        {% endif %}{% endfor %}
+
+        {% if todos %}
+        <div class="stats">
+            {% with total=todos|length %}
+            <div class="stat">
+                <span class="stat-value">{{ total }}</span>
+                <span class="stat-label">total</span>
+            </div>
+            {% endwith %}
+            <div class="stat">
+                <span class="stat-value" id="done-count">—</span>
+                <span class="stat-label">completed</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="open-count">—</span>
+                <span class="stat-label">open</span>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Mobile Nav -->
+    <nav class="mobile-nav">
+        <a href="{% url 'index' %}" class="active">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+            Tasks
+        </a>
+        <a href="{% url 'notes_list' %}">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            Notes
+        </a>
+        <form method="post" action="{% url 'logout' %}" style="flex:1;">
+            {% csrf_token %}
+            <button type="submit" style="width:100%;height:100%;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 0 14px;color:var(--text-muted);font-size:10px;font-weight:500;cursor:pointer;">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6"/></svg>
+                Sign out
+            </button>
+        </form>
+    </nav>
+
+    <!-- Right Panel -->
+    <aside class="right-panel">
+
+        <!-- Mumbai Clock -->
+        <div class="widget">
+            <span class="widget-label">Mumbai &middot; IST</span>
+            <div class="clock" id="clock">--:--:--</div>
+            <div class="clock-sub" id="clock-date"></div>
+        </div>
+
+        <!-- Today -->
+        <div class="widget">
+            <span class="widget-label">Today</span>
+            <div class="clock" id="today-time">--:--</div>
+            <div class="clock-sub" id="today-date"></div>
+        </div>
+
+        <!-- Brain Dump Counter -->
+        <div class="widget">
+            <span class="widget-label">Captured Today</span>
+            <div class="dump-row">
+                <div class="dump-count">{{ today_count }}</div>
+                <div class="dump-sub">brain dumps</div>
+            </div>
+        </div>
+
+        <!-- Scratchpad -->
+        <div class="widget scratchpad-widget" style="flex:1;">
+            <span class="widget-label">Scratchpad</span>
+            <textarea class="scratchpad" id="scratchpad" placeholder="Quick thoughts…"></textarea>
+        </div>
+
+    </aside>
+
+    <script>
+        // Count done vs open from DOM
+        const items = document.querySelectorAll('.todo-item');
+        const done = document.querySelectorAll('.todo-item.done').length;
+        const open = items.length - done;
+        const doneEl = document.getElementById('done-count');
+        const openEl = document.getElementById('open-count');
+        if (doneEl) doneEl.textContent = done;
+        if (openEl) openEl.textContent = open;
+
+        // Theme toggle
+        const html = document.documentElement;
+        const btn = document.getElementById('theme-toggle');
+        const saved = localStorage.getItem('theme') || 'dark';
+        function applyTheme(t) {
+            html.setAttribute('data-theme', t);
+            btn.textContent = t === 'dark' ? '☀' : '☾';
+        }
+        applyTheme(saved);
+        btn.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', next);
+            applyTheme(next);
+        });
+
+        // Mumbai Clock (IST = UTC+5:30)
+        function updateClock() {
+            const now = new Date();
+            const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+            const h = String(ist.getHours()).padStart(2, '0');
+            const m = String(ist.getMinutes()).padStart(2, '0');
+            const s = String(ist.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+            document.getElementById('clock-date').textContent = ist.toLocaleDateString('en-IN', {
+                weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata'
+            });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Today time (local)
+        function updateToday() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('today-time').textContent = `${h}:${m}`;
+            document.getElementById('today-date').textContent = now.toLocaleDateString('en-IN', {
+                weekday: 'long', day: 'numeric', month: 'short'
+            });
+        }
+        updateToday();
+        setInterval(updateToday, 1000);
+
+        // Scratchpad (persisted in localStorage)
+        const pad = document.getElementById('scratchpad');
+        pad.value = localStorage.getItem('scratchpad') || '';
+        pad.addEventListener('input', () => localStorage.setItem('scratchpad', pad.value));
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement.tagName;
+            const typing = tag === 'INPUT' || tag === 'TEXTAREA';
+
+            // ? → show shortcuts modal
+            if (e.key === '?' && !typing) { e.preventDefault(); showShortcuts(); return; }
+            // Escape → close modal or blur
+            if (e.key === 'Escape') { closeShortcuts(); document.activeElement.blur(); return; }
+            // / → focus task input
+            if (e.key === '/' && !typing) { e.preventDefault(); document.querySelector('.add-form input')?.focus(); return; }
+            // Ctrl+K → search
+            if (e.key === 'k' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); window.location.href = '{% url "search" %}'; return; }
+            // Ctrl+N → new note
+            if (e.key === 'n' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.querySelector('form[action*="notes/new"]')?.submit(); return; }
+        });
+    </script>
+
+    <!-- Shortcuts modal -->
+    <div id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;align-items:center;justify-content:center;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px 32px;min-width:340px;max-width:420px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <span style="font-size:13px;font-weight:600;color:var(--text);">Keyboard Shortcuts</span>
+                <button onclick="closeShortcuts()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;line-height:1;">&times;</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0;font-size:12px;" id="sc-list"></div>
+        </div>
+    </div>
+    <script>
+        const SHORTCUTS = [
+            { keys: ['/'],           desc: 'Focus task input' },
+            { keys: ['Ctrl', 'K'],   desc: 'Go to search' },
+            { keys: ['Ctrl', 'N'],   desc: 'New note' },
+            { keys: ['Esc'],         desc: 'Dismiss / blur' },
+            { keys: ['?'],           desc: 'Show this panel' },
+        ];
+        function renderShortcuts(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = SHORTCUTS.map(s => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-muted);">${s.desc}</span>
+                    <span style="display:flex;gap:4px;">${s.keys.map(k => `<kbd style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:var(--font-mono);font-size:11px;color:var(--text);">${k}</kbd>`).join('')}</span>
+                </div>`).join('');
+        }
+        renderShortcuts('sc-list');
+        function showShortcuts() { const m = document.getElementById('shortcuts-modal'); m.style.display = 'flex'; }
+        function closeShortcuts() { document.getElementById('shortcuts-modal').style.display = 'none'; }
+        document.getElementById('shortcuts-modal').addEventListener('click', function(e) { if (e.target === this) closeShortcuts(); });
+    </script>
+</body>
+</html>
