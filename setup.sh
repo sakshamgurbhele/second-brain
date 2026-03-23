@@ -11,7 +11,13 @@ fi
 
 # Clone repo
 cd /home/ubuntu
-git clone https://github.com/sakshamgurbhele/second-brain.git . 2>/dev/null || git pull
+if [ -d ".git" ]; then
+  git pull
+else
+  git clone https://github.com/sakshamgurbhele/second-brain.git temp_clone
+  cp -r temp_clone/. .
+  rm -rf temp_clone
+fi
 
 # Create virtualenv
 python3.12 -m venv todoenv
