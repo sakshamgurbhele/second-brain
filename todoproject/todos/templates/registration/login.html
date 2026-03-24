@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — Second Brain</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'todos/favicon.svg' %}">
+    <script>(()=>{const b=document.title;function u(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0');document.title=h+':'+m+' · '+b;}u();setInterval(u,1000);})();</script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -111,14 +114,53 @@
             color: var(--text-faint);
             margin-bottom: 40px;
         }
+        .clocks {
+            margin-bottom: 32px;
+        }
+        .clock-primary {
+            font-size: 36px;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            letter-spacing: 2px;
+            color: var(--text);
+            line-height: 1;
+        }
+        .clock-primary-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+            margin-bottom: 16px;
+        }
+        .clock-secondary {
+            font-size: 20px;
+            font-weight: 400;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            line-height: 1;
+        }
+        .clock-secondary-label {
+            font-size: 11px;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <p class="logo">// second-brain</p>
+        <div class="clocks">
+            <div class="clock-primary" id="dublin-time">--:--:--</div>
+            <div class="clock-primary-label">Dublin</div>
+            <div class="clock-secondary" id="mumbai-time">--:--:--</div>
+            <div class="clock-secondary-label">Mumbai</div>
+        </div>
         <div class="card-header">
             <h1>Second Brain</h1>
-            <p>enter your password to continue</p>
+            <p>enter your master password to continue</p>
         </div>
 
         {% if error == 'locked' %}
@@ -137,5 +179,16 @@
         </form>
 
     </div>
+    <script>
+        function updateClocks() {
+            const now = new Date();
+            document.getElementById('dublin-time').textContent =
+                now.toLocaleTimeString('en-IE', { timeZone: 'Europe/Dublin', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            document.getElementById('mumbai-time').textContent =
+                now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        }
+        updateClocks();
+        setInterval(updateClocks, 1000);
+    </script>
 </body>
 </html>

@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Second Brain</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'todos/favicon.svg' %}">
+    <script>(()=>{const b=document.title;function u(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0');document.title=h+':'+m+' · '+b;}u();setInterval(u,1000);})();</script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -386,7 +389,7 @@
         }
 
         /* Clock */
-        .clock {
+        .clock-primary {
             font-family: var(--font-mono);
             font-size: 30px;
             font-weight: 700;
@@ -394,34 +397,24 @@
             letter-spacing: 3px;
             line-height: 1;
         }
-        .clock-sub {
+        .clock-primary-label {
             font-size: 11px;
             color: var(--text-muted);
             margin-top: 2px;
+            margin-bottom: 12px;
         }
-
-        /* Today widget */
-        .today-elapsed {
+        .clock-secondary {
             font-family: var(--font-mono);
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text);
-        }
-        .today-track {
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            overflow: hidden;
-            margin: 4px 0;
-        }
-        .today-progress {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--green));
-            border-radius: 2px;
-        }
-        .today-remain {
-            font-size: 11px;
+            font-size: 18px;
+            font-weight: 500;
             color: var(--text-muted);
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+        .clock-secondary-label {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-top: 2px;
         }
 
         /* Brain dump */
@@ -518,6 +511,8 @@
 </head>
 <body>
 
+    <form id="refresh-logout" method="post" action="{% url 'logout' %}" style="display:none">{% csrf_token %}</form>
+
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
@@ -538,6 +533,10 @@
                 <path d="M5 5h6M5 8h6M5 11h4"/>
             </svg>
             Notes
+        </a>
+        <a class="nav-item" href="{% url 'files_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4"/></svg>
+            Files
         </a>
         <a class="nav-item" href="{% url 'search' %}">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
@@ -672,18 +671,14 @@
     <!-- Right Panel -->
     <aside class="right-panel">
 
-        <!-- Mumbai Clock -->
+        <!-- Clocks -->
         <div class="widget">
+            <span class="widget-label">Dublin &middot; IST</span>
+            <div class="clock-primary" id="dublin-time">--:--:--</div>
+            <div class="clock-primary-label" id="dublin-date"></div>
             <span class="widget-label">Mumbai &middot; IST</span>
-            <div class="clock" id="clock">--:--:--</div>
-            <div class="clock-sub" id="clock-date"></div>
-        </div>
-
-        <!-- Today -->
-        <div class="widget">
-            <span class="widget-label">Today</span>
-            <div class="clock" id="today-time">--:--</div>
-            <div class="clock-sub" id="today-date"></div>
+            <div class="clock-secondary" id="mumbai-time">--:--:--</div>
+            <div class="clock-secondary-label" id="mumbai-date"></div>
         </div>
 
         <!-- Brain Dump Counter -->
@@ -704,6 +699,11 @@
     </aside>
 
     <script>
+        // Logout after 5 minutes of inactivity
+        let idleTimer = setTimeout(() => document.getElementById('refresh-logout').submit(), 5 * 60 * 1000);
+        function resetIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(() => document.getElementById('refresh-logout').submit(), 5 * 60 * 1000); }
+        ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(e => document.addEventListener(e, resetIdle));
+
         // Count done vs open from DOM
         const items = document.querySelectorAll('.todo-item');
         const done = document.querySelectorAll('.todo-item.done').length;
@@ -728,33 +728,20 @@
             applyTheme(next);
         });
 
-        // Mumbai Clock (IST = UTC+5:30)
-        function updateClock() {
+        // Clocks
+        function updateClocks() {
             const now = new Date();
-            const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-            const h = String(ist.getHours()).padStart(2, '0');
-            const m = String(ist.getMinutes()).padStart(2, '0');
-            const s = String(ist.getSeconds()).padStart(2, '0');
-            document.getElementById('clock').textContent = `${h}:${m}:${s}`;
-            document.getElementById('clock-date').textContent = ist.toLocaleDateString('en-IN', {
-                weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata'
-            });
+            document.getElementById('dublin-time').textContent =
+                now.toLocaleTimeString('en-IE', { timeZone: 'Europe/Dublin', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            document.getElementById('dublin-date').textContent =
+                now.toLocaleDateString('en-IE', { timeZone: 'Europe/Dublin', weekday: 'long', day: 'numeric', month: 'short' });
+            document.getElementById('mumbai-time').textContent =
+                now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            document.getElementById('mumbai-date').textContent =
+                now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'short' });
         }
-        updateClock();
-        setInterval(updateClock, 1000);
-
-        // Today time (local)
-        function updateToday() {
-            const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('today-time').textContent = `${h}:${m}`;
-            document.getElementById('today-date').textContent = now.toLocaleDateString('en-IN', {
-                weekday: 'long', day: 'numeric', month: 'short'
-            });
-        }
-        updateToday();
-        setInterval(updateToday, 1000);
+        updateClocks();
+        setInterval(updateClocks, 1000);
 
         // Scratchpad (persisted in localStorage)
         const pad = document.getElementById('scratchpad');

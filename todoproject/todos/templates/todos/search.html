@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search — Second Brain</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'todos/favicon.svg' %}">
+    <script>(()=>{const b=document.title;function u(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0');document.title=h+':'+m+' · '+b;}u();setInterval(u,1000);})();</script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -251,6 +254,12 @@
         function showShortcuts() { document.getElementById('shortcuts-modal').style.display = 'flex'; }
         function closeShortcuts() { document.getElementById('shortcuts-modal').style.display = 'none'; }
         document.getElementById('shortcuts-modal').addEventListener('click', function(e) { if (e.target === this) closeShortcuts(); });
+    </script>
+    <form id="refresh-logout" method="post" action="{% url 'logout' %}" style="display:none">{% csrf_token %}</form>
+    <script>
+        let idleTimer = setTimeout(() => document.getElementById('refresh-logout').submit(), 5 * 60 * 1000);
+        function resetIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(() => document.getElementById('refresh-logout').submit(), 5 * 60 * 1000); }
+        ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(e => document.addEventListener(e, resetIdle));
     </script>
 </body>
 </html>

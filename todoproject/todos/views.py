@@ -1,4 +1,5 @@
-from datetime import date
+from django.utils import timezone
+from datetime import timedelta as timedelta
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
@@ -7,20 +8,32 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings
 from django.db.models import Q
-from .models import Todo, Note
+from django.core.cache import cache
+from django.utils.crypto import constant_time_compare
+import os
+from .models import Todo, Note, UploadedFile
+
+ALLOWED_EXTENSIONS = {
+    'pdf', 'txt', 'md', 'doc', 'docx', 'xls', 'xlsx',
+    'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
+    'mp3', 'mp4', 'zip', 'csv',
+}
+MAX_NOTE_CONTENT = 500_000  # 500 KB
 
 
 @login_required
 def index(request):
     todos = Todo.objects.filter(user=request.user)
-    today_count = Todo.objects.filter(user=request.user, created_at__date=date.today()).count()
+    today_start = timezone.make_aware(timezone.datetime.combine(timezone.localdate(), timezone.datetime.min.time()))
+    today_end = today_start + timedelta(days=1)
+    today_count = Todo.objects.filter(user=request.user, created_at__gte=today_start, created_at__lt=today_end).count()
     return render(request, 'todos/index.html', {'todos': todos, 'today_count': today_count})
 
 
 @login_required
 @require_POST
 def add(request):
-    title = request.POST.get('title', '').strip()
+    title = request.POST.get('title', '').strip()[:200]
     if title:
         Todo.objects.create(title=title, user=request.user)
     return redirect('index')
@@ -62,8 +75,14 @@ def note_create(request):
 def note_detail(request, pk):
     note = get_object_or_404(Note, pk=pk, user=request.user)
     if request.method == 'POST':
-        note.title = request.POST.get('title', 'Untitled').strip() or 'Untitled'
-        note.content = request.POST.get('content', '')
+        title = request.POST.get('title', 'Untitled').strip() or 'Untitled'
+        content = request.POST.get('content', '')
+        if len(title) > 200:
+            return JsonResponse({'error': 'Title too long'}, status=400)
+        if len(content) > MAX_NOTE_CONTENT:
+            return JsonResponse({'error': 'Content too long'}, status=400)
+        note.title = title
+        note.content = content
         note.save()
         return JsonResponse({'saved': True, 'updated_at': note.updated_at.strftime('%H:%M:%S')})
     all_notes = Note.objects.filter(user=request.user)
@@ -72,7 +91,7 @@ def note_detail(request, pk):
 
 @login_required
 def search(request):
-    q = request.GET.get('q', '').strip()
+    q = request.GET.get('q', '').strip()[:200]
     notes = []
     todos = []
     if q:
@@ -91,6 +110,53 @@ def note_delete(request, pk):
     return redirect('notes_list')
 
 
+@login_required
+def files_list(request):
+    files = UploadedFile.objects.filter(user=request.user)
+    return render(request, 'todos/files.html', {'files': files})
+
+
+@login_required
+@require_POST
+def file_upload(request):
+    f = request.FILES.get('file')
+    if f:
+        files = UploadedFile.objects.filter(user=request.user)
+        if f.size > 10 * 1024 * 1024:
+            return render(request, 'todos/files.html', {'files': files, 'error': 'File exceeds 10 MB limit.'})
+        ext = f.name.rsplit('.', 1)[-1].lower() if '.' in f.name else ''
+        if ext not in ALLOWED_EXTENSIONS:
+            return render(request, 'todos/files.html', {'files': files, 'error': f'File type .{ext} is not allowed.'})
+        safe_name = os.path.basename(f.name)
+        f.name = safe_name
+        UploadedFile.objects.create(user=request.user, file=f, original_name=safe_name, size=f.size)
+    return redirect('files_list')
+
+
+@login_required
+def file_download(request, pk):
+    from django.http import FileResponse
+    uf = get_object_or_404(UploadedFile, pk=pk, user=request.user)
+    safe_name = os.path.basename(uf.original_name)
+    return FileResponse(uf.file.open('rb'), as_attachment=True, filename=safe_name)
+
+
+@login_required
+@require_POST
+def file_delete(request, pk):
+    uf = get_object_or_404(UploadedFile, pk=pk, user=request.user)
+    uf.file.delete(save=False)
+    uf.delete()
+    return redirect('files_list')
+
+
+def _get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '')
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('index')
@@ -98,14 +164,26 @@ def login_view(request):
     error = False
 
     if request.method == 'POST':
+        ip = _get_client_ip(request)
+        cache_key = f'login_attempts:{ip}'
+        attempts = cache.get(cache_key, 0)
+
+        if attempts >= 5:
+            return render(request, 'registration/login.html', {'error': True, 'locked': True})
+
         password = request.POST.get('password', '')
-        today = date.today().strftime('%d')
+        today = timezone.localdate().strftime('%d')
         expected = settings.BASE_PASSWORD + today
-        if password == expected:
+
+        if constant_time_compare(password, expected):
+            cache.delete(cache_key)
             user = User.objects.first()
             if user:
                 login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 return redirect('index')
+        else:
+            cache.set(cache_key, attempts + 1, 3600)
+
         error = True
 
     return render(request, 'registration/login.html', {'error': error})

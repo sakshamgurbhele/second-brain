@@ -4,4 +4,4 @@ source /home/ubuntu/.env
 set +a
 source /home/ubuntu/todoenv/bin/activate
 cd /home/ubuntu/todoproject
-exec python manage.py runserver 0.0.0.0:8000
+exec gunicorn --workers 3 --bind 127.0.0.1:8000 --timeout 60 todoproject.wsgi:application
