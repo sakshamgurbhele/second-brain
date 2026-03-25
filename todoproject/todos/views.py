@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.core.cache import cache
 from django.utils.crypto import constant_time_compare
 import os
-from .models import Todo, Note, UploadedFile, CodeSnippet
+from .models import Todo, Note, UploadedFile, CodeSnippet, Link
 
 ALLOWED_EXTENSIONS = {
     'pdf', 'txt', 'md', 'doc', 'docx', 'xls', 'xlsx',
@@ -197,6 +197,50 @@ def code_delete(request, pk):
     snippet = get_object_or_404(CodeSnippet, pk=pk, user=request.user)
     snippet.delete()
     return redirect('code_list')
+
+
+@login_required
+def links_list(request):
+    tag_filter = request.GET.get('tag', '').strip()
+    links = Link.objects.filter(user=request.user)
+    if tag_filter:
+        links = links.filter(tags__icontains=tag_filter)
+    all_tags = []
+    for link in Link.objects.filter(user=request.user):
+        for t in link.tag_list:
+            if t not in all_tags:
+                all_tags.append(t)
+    return render(request, 'todos/links.html', {
+        'links': links,
+        'all_tags': sorted(all_tags),
+        'tag_filter': tag_filter,
+    })
+
+
+@login_required
+@require_POST
+def link_add(request):
+    url = request.POST.get('url', '').strip()[:2000]
+    title = request.POST.get('title', '').strip()[:200]
+    description = request.POST.get('description', '').strip()[:1000]
+    tags = request.POST.get('tags', '').strip()[:200]
+    if url:
+        Link.objects.create(
+            user=request.user,
+            url=url,
+            title=title,
+            description=description,
+            tags=tags,
+        )
+    return redirect('links_list')
+
+
+@login_required
+@require_POST
+def link_delete(request, pk):
+    link = get_object_or_404(Link, pk=pk, user=request.user)
+    link.delete()
+    return redirect('links_list')
 
 
 def _get_client_ip(request):

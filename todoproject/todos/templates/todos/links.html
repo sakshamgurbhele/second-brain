@@ -1,0 +1,301 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Links — Second Brain</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f1117; --surface: #161b22; --surface-2: #1c2230;
+            --border: #21293a; --accent: #58a6ff; --accent-dim: rgba(88,166,255,0.12);
+            --green: #3fb950; --green-dim: rgba(63,185,80,0.12);
+            --text: #e6edf3; --text-muted: #8b949e;
+            --text-faint: #30363d; --danger: #f85149; --radius: 6px;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+        html[data-theme="light"] {
+            --bg: #f6f8fa; --surface: #ffffff; --surface-2: #f0f2f5;
+            --border: #d0d7de; --accent: #0969da; --accent-dim: rgba(9,105,218,0.08);
+            --green: #1a7f37; --green-dim: rgba(26,127,55,0.1);
+            --text: #1f2328; --text-muted: #656d76;
+            --text-faint: #8c959f; --danger: #d1242f;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; display: grid; grid-template-columns: 220px 1fr;
+        }
+        .sidebar {
+            background: var(--surface); border-right: 1px solid var(--border);
+            padding: 24px 0; display: flex; flex-direction: column;
+            gap: 2px; position: sticky; top: 0; height: 100vh;
+        }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        .sidebar-logo h2 { font-size: 15px; font-weight: 600; }
+        .sidebar-logo span { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+        .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--text-faint); text-transform: uppercase; padding: 8px 20px 4px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; font-size: 14px; color: var(--text-muted); text-decoration: none; border-left: 2px solid transparent; transition: all 0.15s; }
+        .nav-item:hover { color: var(--text); background: var(--surface-2); }
+        .nav-item.active { color: var(--text); background: var(--accent-dim); border-left-color: var(--accent); }
+        .nav-item svg { flex-shrink: 0; opacity: 0.7; }
+        .nav-item.active svg { opacity: 1; }
+        .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+
+        .main { padding: 48px 48px 80px; max-width: 760px; }
+
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+        .page-header h1 { font-size: 26px; font-weight: 600; }
+        .page-meta { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+        /* Add form */
+        .add-form {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; padding: 18px; margin-bottom: 28px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .add-form:focus-within { border-color: var(--accent); }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .field { flex: 1; }
+        .field label { display: block; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .field input, .field textarea {
+            width: 100%; padding: 8px 12px; background: var(--surface-2);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            color: var(--text); font-size: 14px; font-family: inherit;
+            outline: none; transition: border-color 0.15s;
+        }
+        .field input:focus, .field textarea:focus { border-color: var(--accent); }
+        .field input::placeholder, .field textarea::placeholder { color: var(--text-faint); }
+        .field textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+        .form-actions { display: flex; justify-content: flex-end; }
+        .btn-add {
+            padding: 8px 20px; background: var(--accent); color: #fff;
+            border: none; border-radius: var(--radius); font-size: 13px;
+            font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+        }
+        .btn-add:hover { opacity: 0.85; }
+
+        /* Tag filters */
+        .tag-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+        .tag-chip {
+            padding: 3px 10px; border-radius: 20px; font-size: 11px; font-family: var(--font-mono);
+            text-decoration: none; border: 1px solid var(--border); color: var(--text-muted);
+            transition: all 0.15s; cursor: pointer;
+        }
+        .tag-chip:hover { border-color: var(--accent); color: var(--accent); }
+        .tag-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .tag-clear { color: var(--text-faint); border-color: transparent; }
+
+        /* Link list */
+        .links-list { display: flex; flex-direction: column; gap: 2px; }
+
+        .link-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 14px 16px; border-radius: 8px;
+            border: 1px solid transparent;
+            transition: background 0.1s, border-color 0.1s;
+            position: relative;
+        }
+        .link-item:hover { background: var(--surface); border-color: var(--border); }
+        .link-item:hover .link-actions { opacity: 1; }
+
+        .link-favicon {
+            width: 28px; height: 28px; border-radius: 6px;
+            background: var(--surface-2); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 2px; overflow: hidden;
+        }
+        .link-favicon img { width: 16px; height: 16px; }
+        .link-favicon svg { opacity: 0.4; }
+
+        .link-body { flex: 1; min-width: 0; }
+        .link-title {
+            font-size: 14px; font-weight: 600; color: var(--text);
+            text-decoration: none; display: block; margin-bottom: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .link-title:hover { color: var(--accent); }
+        .link-url {
+            font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            display: block; margin-bottom: 4px;
+        }
+        .link-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 6px; }
+        .link-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .link-tag {
+            padding: 1px 8px; border-radius: 20px; font-size: 10px;
+            font-family: var(--font-mono); background: var(--accent-dim);
+            color: var(--accent); border: 1px solid rgba(88,166,255,0.2);
+            text-decoration: none; cursor: pointer;
+        }
+        .link-tag:hover { background: var(--accent); color: #fff; }
+        .link-date { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); margin-left: auto; }
+
+        .link-actions {
+            display: flex; gap: 6px; align-items: center;
+            opacity: 0; transition: opacity 0.15s; flex-shrink: 0;
+        }
+        .btn-open {
+            padding: 4px 10px; background: var(--accent-dim); border: 1px solid var(--accent);
+            color: var(--accent); border-radius: var(--radius); font-size: 11px;
+            font-family: var(--font-mono); cursor: pointer; text-decoration: none;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .btn-delete {
+            padding: 4px 10px; background: none; border: 1px solid var(--border);
+            color: var(--text-faint); border-radius: var(--radius); font-size: 11px;
+            cursor: pointer; transition: color 0.15s, border-color 0.15s;
+        }
+        .btn-delete:hover { color: var(--danger); border-color: var(--danger); }
+
+        .empty { padding: 40px 0; font-size: 13px; color: var(--text-faint); font-family: var(--font-mono); }
+
+        @media (max-width: 900px) {
+            .form-row { flex-direction: column; }
+        }
+        @media (max-width: 640px) {
+            body { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main { padding: 20px 16px 80px; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h2>Second Brain</h2><span>personal workspace</span></div>
+        <span class="nav-label">Views</span>
+        <a class="nav-item" href="{% url 'index' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+            All Tasks
+        </a>
+        <a class="nav-item" href="{% url 'notes_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            Notes
+        </a>
+        <a class="nav-item" href="{% url 'code_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4l-3 4 3 4M11 4l3 4-3 4M9 2l-2 12"/></svg>
+            Code
+        </a>
+        <a class="nav-item" href="{% url 'files_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4"/></svg>
+            Files
+        </a>
+        <a class="nav-item active" href="{% url 'links_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5a3.54 3.54 0 005 0l2-2a3.54 3.54 0 00-5-5L7.5 3.5"/><path d="M9.5 6.5a3.54 3.54 0 00-5 0l-2 2a3.54 3.54 0 005 5l1-1"/></svg>
+            Links
+        </a>
+        <a class="nav-item" href="{% url 'search' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+            Search
+        </a>
+        <div class="sidebar-footer">
+            <div style="margin-bottom:8px;color:var(--text-muted);">{{ request.user.username }}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                    <button type="submit" style="background:none;border:none;color:var(--text-faint);font-size:11px;font-family:var(--font-mono);cursor:pointer;padding:0;">sign out</button>
+                </form>
+                <button id="theme-toggle" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:13px;cursor:pointer;padding:3px 7px;border-radius:4px;line-height:1;">☀</button>
+            </div>
+            <div>{% now "Y-m-d" %}</div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1>Links</h1>
+                <p class="page-meta">{{ links.count }} saved</p>
+            </div>
+        </div>
+
+        <!-- Add link form -->
+        <form class="add-form" method="post" action="{% url 'link_add' %}">
+            {% csrf_token %}
+            <div class="field">
+                <label>URL *</label>
+                <input type="url" name="url" placeholder="https://example.com" required autofocus>
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label>Title</label>
+                    <input type="text" name="title" placeholder="Optional title">
+                </div>
+                <div class="field">
+                    <label>Tags</label>
+                    <input type="text" name="tags" placeholder="work, reading, tools (comma-separated)">
+                </div>
+            </div>
+            <div class="field">
+                <label>Description</label>
+                <textarea name="description" placeholder="Optional notes about this link…"></textarea>
+            </div>
+            <div class="form-actions">
+                <button class="btn-add" type="submit">Save link</button>
+            </div>
+        </form>
+
+        <!-- Tag filters -->
+        {% if all_tags %}
+        <div class="tag-bar">
+            {% if tag_filter %}
+            <a class="tag-chip tag-clear" href="{% url 'links_list' %}">✕ clear filter</a>
+            {% endif %}
+            {% for tag in all_tags %}
+            <a class="tag-chip {% if tag == tag_filter %}active{% endif %}" href="{% url 'links_list' %}?tag={{ tag }}">{{ tag }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Links list -->
+        {% if links %}
+        <div class="links-list">
+            {% for link in links %}
+            <div class="link-item">
+                <div class="link-favicon">
+                    <img src="https://www.google.com/s2/favicons?domain={{ link.url }}&sz=32" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                    <svg style="display:none" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5a3.54 3.54 0 005 0l2-2a3.54 3.54 0 00-5-5L7.5 3.5"/><path d="M9.5 6.5a3.54 3.54 0 00-5 0l-2 2a3.54 3.54 0 005 5l1-1"/></svg>
+                </div>
+                <div class="link-body">
+                    <a class="link-title" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                        {% if link.title %}{{ link.title }}{% else %}{{ link.url }}{% endif %}
+                    </a>
+                    {% if link.title %}<span class="link-url">{{ link.url }}</span>{% endif %}
+                    {% if link.description %}<p class="link-desc">{{ link.description }}</p>{% endif %}
+                    <div class="link-meta">
+                        {% if link.tag_list %}
+                            {% for tag in link.tag_list %}
+                            <a class="link-tag" href="{% url 'links_list' %}?tag={{ tag }}">{{ tag }}</a>
+                            {% endfor %}
+                        {% endif %}
+                        <span class="link-date">{{ link.created_at|date:"M j, Y" }}</span>
+                    </div>
+                </div>
+                <div class="link-actions">
+                    <a class="btn-open" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9"/><path d="M10 2h4v4M14 2L8 8"/></svg>
+                        open
+                    </a>
+                    <form method="post" action="{% url 'link_delete' link.pk %}" style="display:inline">
+                        {% csrf_token %}
+                        <button class="btn-delete" type="submit" onclick="return confirm('Delete this link?')">del</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">// no links saved yet — paste a URL above</p>
+        {% endif %}
+    </main>
+
+    <script>
+        const html = document.documentElement;
+        const btn = document.getElementById('theme-toggle');
+        const saved = localStorage.getItem('theme') || 'dark';
+        function applyTheme(t) { html.setAttribute('data-theme', t); btn.textContent = t === 'dark' ? '☀' : '☾'; }
+        applyTheme(saved);
+        btn.addEventListener('click', () => { const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', next); applyTheme(next); });
+    </script>
+</body>
+</html>

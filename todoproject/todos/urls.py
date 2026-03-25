@@ -19,6 +19,9 @@ urlpatterns = [
     path('code/new/', views.code_create, name='code_create'),
     path('code/<str:pk>/', views.code_detail, name='code_detail'),
     path('code/<str:pk>/delete/', views.code_delete, name='code_delete'),
+    path('links/', views.links_list, name='links_list'),
+    path('links/add/', views.link_add, name='link_add'),
+    path('links/<str:pk>/delete/', views.link_delete, name='link_delete'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
 ]

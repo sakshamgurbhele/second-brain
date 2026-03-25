@@ -50,6 +50,10 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4l-3 4 3 4M11 4l3 4-3 4M9 2l-2 12"/></svg>
             Code
         </a>
+        <a class="nav-item" href="{% url 'links_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.5 9.5a3.54 3.54 0 005 0l2-2a3.54 3.54 0 00-5-5L7.5 3.5"/><path d="M9.5 6.5a3.54 3.54 0 00-5 0l-2 2a3.54 3.54 0 005 5l1-1"/></svg>
+            Links
+        </a>
         <div class="sidebar-footer">
             <div style="margin-bottom:8px;color:var(--text-muted);">{{ request.user.username }}</div>
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}

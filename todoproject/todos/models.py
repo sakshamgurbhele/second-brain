@@ -37,6 +37,7 @@ class CodeSnippet(models.Model):
         ('htmlmixed', 'HTML'),
         ('css', 'CSS'),
         ('shell', 'Shell'),
+        ('java', 'Java'),
         ('go', 'Go'),
         ('rust', 'Rust'),
         ('sql', 'SQL'),
@@ -57,6 +58,25 @@ class CodeSnippet(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
+
+
+class Link(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    url = models.URLField(max_length=2000)
+    title = models.CharField(max_length=200, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    tags = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def tag_list(self):
+        return [t.strip() for t in self.tags.split(',') if t.strip()]
+
+    def __str__(self):
+        return self.title or self.url
+
+    class Meta:
+        ordering = ['-created_at']
 
 
 class UploadedFile(models.Model):
