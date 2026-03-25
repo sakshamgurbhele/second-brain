@@ -15,6 +15,10 @@ urlpatterns = [
     path('files/upload/', views.file_upload, name='file_upload'),
     path('files/<str:pk>/download/', views.file_download, name='file_download'),
     path('files/<str:pk>/delete/', views.file_delete, name='file_delete'),
+    path('code/', views.code_list, name='code_list'),
+    path('code/new/', views.code_create, name='code_create'),
+    path('code/<str:pk>/', views.code_detail, name='code_detail'),
+    path('code/<str:pk>/delete/', views.code_delete, name='code_delete'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
 ]

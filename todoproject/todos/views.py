@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.core.cache import cache
 from django.utils.crypto import constant_time_compare
 import os
-from .models import Todo, Note, UploadedFile
+from .models import Todo, Note, UploadedFile, CodeSnippet
 
 ALLOWED_EXTENSIONS = {
     'pdf', 'txt', 'md', 'doc', 'docx', 'xls', 'xlsx',
@@ -148,6 +148,55 @@ def file_delete(request, pk):
     uf.file.delete(save=False)
     uf.delete()
     return redirect('files_list')
+
+
+MAX_SNIPPET_CONTENT = 500_000
+
+
+@login_required
+def code_list(request):
+    first = CodeSnippet.objects.filter(user=request.user).first()
+    if first:
+        return redirect('code_detail', pk=first.pk)
+    return render(request, 'todos/code_empty.html')
+
+
+@login_required
+@require_POST
+def code_create(request):
+    snippet = CodeSnippet.objects.create(user=request.user, title='Untitled', content='')
+    return redirect('code_detail', pk=snippet.pk)
+
+
+@login_required
+def code_detail(request, pk):
+    snippet = get_object_or_404(CodeSnippet, pk=pk, user=request.user)
+    if request.method == 'POST':
+        title = request.POST.get('title', 'Untitled').strip() or 'Untitled'
+        language = request.POST.get('language', 'python')
+        content = request.POST.get('content', '')
+        if len(title) > 200:
+            return JsonResponse({'error': 'Title too long'}, status=400)
+        if len(content) > MAX_SNIPPET_CONTENT:
+            return JsonResponse({'error': 'Content too long'}, status=400)
+        valid_languages = {c[0] for c in CodeSnippet.LANGUAGE_CHOICES}
+        if language not in valid_languages:
+            language = 'text'
+        snippet.title = title
+        snippet.language = language
+        snippet.content = content
+        snippet.save()
+        return JsonResponse({'saved': True, 'updated_at': snippet.updated_at.strftime('%H:%M:%S')})
+    all_snippets = CodeSnippet.objects.filter(user=request.user)
+    return render(request, 'todos/code_detail.html', {'snippet': snippet, 'all_snippets': all_snippets})
+
+
+@login_required
+@require_POST
+def code_delete(request, pk):
+    snippet = get_object_or_404(CodeSnippet, pk=pk, user=request.user)
+    snippet.delete()
+    return redirect('code_list')
 
 
 def _get_client_ip(request):
