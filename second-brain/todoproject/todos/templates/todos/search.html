@@ -1,0 +1,269 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search — Second Brain</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'todos/favicon.svg' %}">
+    <script>(()=>{const b=document.title;function u(){const n=new Date(),h=String(n.getHours()).padStart(2,'0'),m=String(n.getMinutes()).padStart(2,'0');document.title=h+':'+m+' · '+b;}u();setInterval(u,1000);})();</script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f1117; --surface: #161b22; --surface-2: #1c2230;
+            --border: #21293a; --accent: #58a6ff; --accent-dim: rgba(88,166,255,0.12);
+            --text: #e6edf3; --text-muted: #8b949e; --text-faint: #30363d;
+            --danger: #f85149; --green: #3fb950; --radius: 6px;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+        html[data-theme="light"] {
+            --bg: #f6f8fa; --surface: #ffffff; --surface-2: #f0f2f5;
+            --border: #d0d7de; --accent: #0969da; --accent-dim: rgba(9,105,218,0.08);
+            --text: #1f2328; --text-muted: #656d76; --text-faint: #8c959f;
+            --danger: #d1242f; --green: #1a7f37;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; display: grid; grid-template-columns: 220px 1fr;
+        }
+        .sidebar {
+            background: var(--surface); border-right: 1px solid var(--border);
+            padding: 24px 0; display: flex; flex-direction: column;
+            gap: 2px; position: sticky; top: 0; height: 100vh;
+        }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        .sidebar-logo h2 { font-size: 15px; font-weight: 600; }
+        .sidebar-logo span { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+        .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--text-faint); text-transform: uppercase; padding: 8px 20px 4px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; font-size: 14px; color: var(--text-muted); text-decoration: none; border-left: 2px solid transparent; transition: all 0.15s; }
+        .nav-item.active { color: var(--text); background: var(--accent-dim); border-left-color: var(--accent); }
+        .nav-item svg { flex-shrink: 0; opacity: 0.7; }
+        .nav-item.active svg { opacity: 1; }
+        .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+
+        .main { padding: 48px 48px 80px; max-width: 760px; }
+
+        .search-bar {
+            display: flex; align-items: center; gap: 0;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); overflow: hidden; margin-bottom: 36px;
+            transition: border-color 0.2s;
+        }
+        .search-bar:focus-within { border-color: var(--accent); }
+        .search-icon { padding: 0 14px; color: var(--text-faint); flex-shrink: 0; }
+        .search-bar input {
+            flex: 1; padding: 14px 0; font-size: 16px; background: none;
+            border: none; outline: none; color: var(--text); font-family: inherit;
+        }
+        .search-bar input::placeholder { color: var(--text-faint); }
+        .search-bar button {
+            padding: 13px 18px; background: var(--surface-2); color: var(--text-muted);
+            border: none; border-left: 1px solid var(--border); font-size: 12px;
+            font-family: var(--font-mono); cursor: pointer; transition: color 0.15s;
+        }
+        .search-bar button:hover { color: var(--accent); }
+
+        .section-label {
+            font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--text-faint);
+            text-transform: uppercase; margin-bottom: 10px; margin-top: 28px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .result-list { display: flex; flex-direction: column; gap: 4px; }
+
+        .result-item {
+            display: flex; flex-direction: column; gap: 4px;
+            padding: 12px 14px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            text-decoration: none; transition: border-color 0.15s;
+        }
+        .result-item:hover { border-color: var(--accent); }
+        .result-title { font-size: 14px; font-weight: 500; color: var(--text); }
+        .result-snippet { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+        .result-snippet mark { background: var(--accent-dim); color: var(--accent); border-radius: 2px; padding: 0 2px; }
+        .result-meta { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+
+        .todo-result {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 14px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: var(--radius);
+        }
+        .todo-result .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .todo-result .dot.open { background: var(--accent); }
+        .todo-result .dot.done { background: var(--green); }
+        .todo-result .title { font-size: 14px; color: var(--text); flex: 1; }
+        .todo-result.done-item .title { color: var(--text-faint); text-decoration: line-through; }
+        .todo-result .badge { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
+
+        .no-results { font-size: 13px; color: var(--text-faint); font-family: var(--font-mono); padding: 40px 0; }
+        .hint { font-size: 13px; color: var(--text-faint); font-family: var(--font-mono); padding: 60px 0; text-align: center; }
+
+        .count-badge { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); margin-left: 4px; }
+
+        @media (max-width: 640px) {
+            body { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main { padding: 20px 16px 90px; }
+        }
+        .mobile-nav { display: none; }
+        @media (max-width: 640px) {
+            .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+            .mobile-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 0 14px; text-decoration: none; color: var(--text-muted); font-size: 10px; font-weight: 500; }
+            .mobile-nav a.active { color: var(--accent); }
+            .mobile-nav a svg { width: 20px; height: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h2>Second Brain</h2><span>personal workspace</span></div>
+        <span class="nav-label">Views</span>
+        <a class="nav-item" href="{% url 'index' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+            All Tasks
+        </a>
+        <a class="nav-item" href="{% url 'notes_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            Notes
+        </a>
+        <a class="nav-item" href="{% url 'code_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4l-3 4 3 4M11 4l3 4-3 4M9 2l-2 12"/></svg>
+            Code
+        </a>
+        <a class="nav-item active" href="{% url 'search' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+            Search
+        </a>
+        <div class="sidebar-footer">
+            <div style="margin-bottom:8px;color:var(--text-muted);">{{ request.user.username }}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                    <button type="submit" style="background:none;border:none;color:var(--text-faint);font-size:11px;font-family:var(--font-mono);cursor:pointer;padding:0;">sign out</button>
+                </form>
+                <button id="theme-toggle" style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:13px;cursor:pointer;padding:3px 7px;border-radius:4px;line-height:1;">☀</button>
+            </div>
+            <div>{% now "Y-m-d" %}</div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <form class="search-bar" method="get" action="{% url 'search' %}">
+            <span class="search-icon">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+            </span>
+            <input type="text" name="q" value="{{ q }}" placeholder="Search notes and tasks…" autofocus autocomplete="off">
+            <button type="submit">search</button>
+        </form>
+
+        {% if q %}
+            {% if notes %}
+            <p class="section-label">Notes <span class="count-badge">{{ notes|length }}</span></p>
+            <div class="result-list">
+                {% for note in notes %}
+                <a class="result-item" href="{% url 'note_detail' note.pk %}">
+                    <div class="result-title">{{ note.title }}</div>
+                    {% if note.content %}
+                    <div class="result-snippet">{{ note.content|truncatechars:140 }}</div>
+                    {% endif %}
+                    <div class="result-meta">{{ note.updated_at|date:"M j, Y · H:i" }}</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if todos %}
+            <p class="section-label">Tasks <span class="count-badge">{{ todos|length }}</span></p>
+            <div class="result-list">
+                {% for todo in todos %}
+                <div class="todo-result {% if todo.completed %}done-item{% endif %}">
+                    <div class="dot {% if todo.completed %}done{% else %}open{% endif %}"></div>
+                    <span class="title">{{ todo.title }}</span>
+                    <span class="badge">{{ todo.created_at|date:"M j" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if not notes and not todos %}
+            <p class="no-results">// no results for "{{ q }}"</p>
+            {% endif %}
+        {% else %}
+            <p class="hint">// type something to search across all notes and tasks</p>
+        {% endif %}
+    </main>
+
+    <nav class="mobile-nav">
+        <a href="{% url 'index' %}">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+            Tasks
+        </a>
+        <a href="{% url 'notes_list' %}">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            Notes
+        </a>
+        <a href="{% url 'search' %}" class="active">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+            Search
+        </a>
+    </nav>
+
+    <script>
+        const html = document.documentElement;
+        const btn = document.getElementById('theme-toggle');
+        const saved = localStorage.getItem('theme') || 'dark';
+        function applyTheme(t) { html.setAttribute('data-theme', t); btn.textContent = t === 'dark' ? '☀' : '☾'; }
+        applyTheme(saved);
+        btn.addEventListener('click', () => { const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', next); applyTheme(next); });
+
+        document.addEventListener('keydown', (e) => {
+            const tag = document.activeElement.tagName;
+            const typing = tag === 'INPUT' || tag === 'TEXTAREA';
+            if (e.key === '?' && !typing) { e.preventDefault(); showShortcuts(); return; }
+            if (e.key === 'Escape') { closeShortcuts(); document.activeElement.blur(); return; }
+            if (e.key === '/' && !typing) { e.preventDefault(); document.querySelector('.search-bar input')?.focus(); return; }
+            if (e.key === 'k' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.querySelector('.search-bar input')?.focus(); return; }
+            if (e.key === 'n' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.querySelector('form[action*="notes/new"]')?.submit(); return; }
+        });
+    </script>
+
+    <div id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;align-items:center;justify-content:center;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px 32px;min-width:340px;max-width:420px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <span style="font-size:13px;font-weight:600;color:var(--text);">Keyboard Shortcuts</span>
+                <button onclick="closeShortcuts()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;line-height:1;">&times;</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0;font-size:12px;" id="sc-list"></div>
+        </div>
+    </div>
+    <script>
+        const SHORTCUTS = [
+            { keys: ['/'],           desc: 'Focus search' },
+            { keys: ['Ctrl', 'K'],   desc: 'Focus search' },
+            { keys: ['Ctrl', 'N'],   desc: 'New note' },
+            { keys: ['Esc'],         desc: 'Dismiss / blur' },
+            { keys: ['?'],           desc: 'Show this panel' },
+        ];
+        function renderShortcuts(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = SHORTCUTS.map(s => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-muted);">${s.desc}</span>
+                    <span style="display:flex;gap:4px;">${s.keys.map(k => `<kbd style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:var(--font-mono);font-size:11px;color:var(--text);">${k}</kbd>`).join('')}</span>
+                </div>`).join('');
+        }
+        renderShortcuts('sc-list');
+        function showShortcuts() { document.getElementById('shortcuts-modal').style.display = 'flex'; }
+        function closeShortcuts() { document.getElementById('shortcuts-modal').style.display = 'none'; }
+        document.getElementById('shortcuts-modal').addEventListener('click', function(e) { if (e.target === this) closeShortcuts(); });
+    </script>
+    <form id="refresh-logout" method="post" action="{% url 'logout' %}" style="display:none">{% csrf_token %}</form>
+    <script>
+        let idleTimer = setTimeout(() => document.getElementById('refresh-logout').submit(), 5 * 60 * 1000);
+        function resetIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(() => document.getElementById('refresh-logout').submit(), 5 * 60 * 1000); }
+        ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(e => document.addEventListener(e, resetIdle));
+    </script>
+</body>
+</html>

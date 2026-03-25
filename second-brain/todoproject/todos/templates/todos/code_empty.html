@@ -1,0 +1,83 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code — Second Brain</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'todos/favicon.svg' %}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f1117; --surface: #161b22; --surface-2: #1c2230;
+            --border: #21293a; --accent: #58a6ff; --accent-dim: rgba(88,166,255,0.12);
+            --text: #e6edf3; --text-muted: #8b949e; --text-faint: #30363d;
+            --danger: #f85149; --radius: 6px;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+        html[data-theme="light"] {
+            --bg: #f6f8fa; --surface: #ffffff; --surface-2: #f0f2f5;
+            --border: #d0d7de; --accent: #0969da; --accent-dim: rgba(9,105,218,0.08);
+            --text: #1f2328; --text-muted: #656d76; --text-faint: #8c959f; --danger: #d1242f;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: grid; grid-template-columns: 200px 1fr; }
+        .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; gap: 2px; height: 100vh; }
+        .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        .sidebar-logo h2 { font-size: 15px; font-weight: 600; }
+        .sidebar-logo span { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+        .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: var(--text-faint); text-transform: uppercase; padding: 8px 20px 4px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; font-size: 14px; color: var(--text-muted); text-decoration: none; border-left: 2px solid transparent; transition: all 0.15s; }
+        .nav-item.active { color: var(--text); background: var(--accent-dim); border-left-color: var(--accent); }
+        .nav-item svg { flex-shrink: 0; opacity: 0.7; }
+        .nav-item.active svg { opacity: 1; }
+        .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; flex: 1; }
+        .empty-state p { font-size: 13px; color: var(--text-faint); font-family: var(--font-mono); }
+        .new-btn { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 13px; padding: 8px 20px; border-radius: var(--radius); cursor: pointer; font-family: var(--font-mono); transition: all 0.15s; }
+        .new-btn:hover { background: var(--accent); color: #fff; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-logo"><h2>Second Brain</h2><span>personal workspace</span></div>
+        <span class="nav-label">Views</span>
+        <a class="nav-item" href="{% url 'index' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>
+            All Tasks
+        </a>
+        <a class="nav-item" href="{% url 'notes_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            Notes
+        </a>
+        <a class="nav-item active" href="{% url 'code_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4l-3 4 3 4M11 4l3 4-3 4M9 2l-2 12"/></svg>
+            Code
+        </a>
+        <a class="nav-item" href="{% url 'files_list' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4"/></svg>
+            Files
+        </a>
+        <a class="nav-item" href="{% url 'search' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+            Search
+        </a>
+        <div class="sidebar-footer">
+            <div style="margin-bottom:8px;color:var(--text-muted);">{{ request.user.username }}</div>
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                <button type="submit" style="background:none;border:none;color:var(--text-faint);font-size:11px;font-family:var(--font-mono);cursor:pointer;padding:0;">sign out</button>
+            </form>
+        </div>
+    </aside>
+    <div class="empty-state">
+        <p>// no snippets yet</p>
+        <form method="post" action="{% url 'code_create' %}">{% csrf_token %}
+            <button class="new-btn" type="submit">+ new snippet</button>
+        </form>
+    </div>
+    <script>
+        const html = document.documentElement;
+        const saved = localStorage.getItem('theme') || 'dark';
+        html.setAttribute('data-theme', saved);
+    </script>
+</body>
+</html>
