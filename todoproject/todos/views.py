@@ -327,6 +327,7 @@ def us_send(request):
             'content': msg.content,
             'sender': msg.sender,
             'time': msg.sent_at.strftime('%I:%M %p'),
+            'ts': msg.sent_at.timestamp(),
         })
     return JsonResponse({'error': 'empty'}, status=400)
 

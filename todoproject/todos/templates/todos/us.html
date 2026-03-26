@@ -656,10 +656,16 @@
         input.focus();
     }
 
-    // Poll every 15 seconds for his replies
+    // Poll for his replies
     async function pollMessages() {
+        if (document.hidden) return; // don't poll when tab is in background
         try {
             const res = await fetch(`{% url "us_poll" %}?after=${lastTs}`);
+            if (res.status === 403) {
+                // Session expired — reload to show gate again
+                window.location.reload();
+                return;
+            }
             if (!res.ok) return;
             const data = await res.json();
             if (!data.messages || !data.messages.length) return;
@@ -675,10 +681,14 @@
 
             if (wasAtBottom) scrollBottom(true);
             if (gotHisMsg) showToast('💖 new message from Saksham');
-        } catch (e) { /* ignore */ }
+        } catch (e) { /* ignore network errors */ }
     }
 
-    setInterval(pollMessages, 15000);
+    // Poll every 8 seconds; also poll immediately when tab becomes visible again
+    setInterval(pollMessages, 8000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) pollMessages();
+    });
 </script>
 {% endif %}
 
