@@ -419,10 +419,7 @@
 
     sendBtn.addEventListener('click', sendMessage);
 
-    function getCsrf() {
-        return document.cookie.split(';').map(c => c.trim())
-            .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
-    }
+    const CSRF = '{{ csrf_token }}';
 
     function renderBubble(msg) {
         if (msg.id && renderedIds.has(msg.id)) return;
@@ -453,7 +450,7 @@
 
         const form = new FormData();
         form.append('content', content);
-        form.append('csrfmiddlewaretoken', getCsrf());
+        form.append('csrfmiddlewaretoken', CSRF);
 
         try {
             const res = await fetch('{% url "us_send" %}', { method: 'POST', body: form });
