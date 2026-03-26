@@ -11,7 +11,9 @@ from django.db.models import Q
 from django.core.cache import cache
 from django.utils.crypto import constant_time_compare
 import os
-from .models import Todo, Note, UploadedFile, CodeSnippet, Link
+from .models import Todo, Note, UploadedFile, CodeSnippet, Link, ChatMessage
+
+US_PASSPHRASE_BASE = 'khushii'
 
 ALLOWED_EXTENSIONS = {
     'pdf', 'txt', 'md', 'doc', 'docx', 'xls', 'xlsx',
@@ -286,3 +288,109 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+# ── Chat ──────────────────────────────────────────────────────────────────────
+
+def us_view(request):
+    """Public chat page for her. Protected by passphrase stored in session."""
+    if request.method == 'POST':
+        entered = request.POST.get('passphrase', '').strip().lower()
+        expected = US_PASSPHRASE_BASE + timezone.localdate().strftime('%d')
+        if constant_time_compare(entered, expected):
+            request.session['us_auth'] = True
+            # Mark his messages as read (she's now reading)
+            ChatMessage.objects.filter(sender='me', is_read=False).update(is_read=True)
+        else:
+            return render(request, 'todos/us.html', {'gate': True, 'error': True})
+        return redirect('us')
+
+    if not request.session.get('us_auth'):
+        return render(request, 'todos/us.html', {'gate': True})
+
+    # Mark his unread messages as read since she opened the chat
+    ChatMessage.objects.filter(sender='me', is_read=False).update(is_read=True)
+    messages = ChatMessage.objects.all()
+    return render(request, 'todos/us.html', {'gate': False, 'messages': messages})
+
+
+@require_POST
+def us_send(request):
+    """Her sends a message."""
+    if not request.session.get('us_auth'):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    content = request.POST.get('content', '').strip()[:2000]
+    if content:
+        msg = ChatMessage.objects.create(content=content, sender='her')
+        return JsonResponse({
+            'id': str(msg.pk),
+            'content': msg.content,
+            'sender': msg.sender,
+            'time': msg.sent_at.strftime('%I:%M %p'),
+        })
+    return JsonResponse({'error': 'empty'}, status=400)
+
+
+def us_poll(request):
+    """Returns new messages since a given timestamp (epoch seconds). For her page polling."""
+    if not request.session.get('us_auth'):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    after_ts = request.GET.get('after', None)
+    qs = ChatMessage.objects.all()
+    if after_ts:
+        try:
+            from datetime import datetime as dt
+            ts = dt.fromtimestamp(float(after_ts), tz=timezone.utc)
+            qs = qs.filter(sent_at__gt=ts)
+        except (ValueError, OSError):
+            pass
+    # Also mark his messages as read
+    ChatMessage.objects.filter(sender='me', is_read=False).update(is_read=True)
+    data = [{'id': str(m.pk), 'content': m.content, 'sender': m.sender,
+             'time': m.sent_at.strftime('%I:%M %p'),
+             'ts': m.sent_at.timestamp()} for m in qs]
+    return JsonResponse({'messages': data})
+
+
+@login_required
+def chats_view(request):
+    """His chat inbox. Marks all her messages as read."""
+    ChatMessage.objects.filter(sender='her', is_read=False).update(is_read=True)
+    messages = ChatMessage.objects.all()
+    return render(request, 'todos/chats.html', {'messages': messages})
+
+
+@login_required
+@require_POST
+def chats_send(request):
+    """He sends a reply."""
+    content = request.POST.get('content', '').strip()[:2000]
+    if content:
+        msg = ChatMessage.objects.create(content=content, sender='me')
+        return JsonResponse({
+            'id': str(msg.pk),
+            'content': msg.content,
+            'sender': msg.sender,
+            'time': msg.sent_at.strftime('%I:%M %p'),
+        })
+    return JsonResponse({'error': 'empty'}, status=400)
+
+
+@login_required
+def chats_poll(request):
+    """Returns new messages since a given timestamp for his page polling."""
+    after_ts = request.GET.get('after', None)
+    qs = ChatMessage.objects.all()
+    if after_ts:
+        try:
+            from datetime import datetime as dt
+            ts = dt.fromtimestamp(float(after_ts), tz=timezone.utc)
+            qs = qs.filter(sent_at__gt=ts)
+        except (ValueError, OSError):
+            pass
+    # Mark her new messages as read since he's polling
+    ChatMessage.objects.filter(sender='her', is_read=False).update(is_read=True)
+    data = [{'id': str(m.pk), 'content': m.content, 'sender': m.sender,
+             'time': m.sent_at.strftime('%I:%M %p'),
+             'ts': m.sent_at.timestamp()} for m in qs]
+    return JsonResponse({'messages': data})

@@ -65,6 +65,10 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
             Search
         </a>
+        <a class="nav-item" href="{% url 'chats' %}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z"/></svg>
+            Chats{% if unread_chat_count %} <span style="background:#fb7185;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;line-height:1.4;">{{ unread_chat_count }}</span>{% endif %}
+        </a>
         <div class="sidebar-footer">
             <div style="margin-bottom:8px;color:var(--text-muted);">{{ request.user.username }}</div>
             <form method="post" action="{% url 'logout' %}">{% csrf_token %}

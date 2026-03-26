@@ -91,3 +91,17 @@ class UploadedFile(models.Model):
 
     class Meta:
         ordering = ['-uploaded_at']
+
+
+class ChatMessage(models.Model):
+    SENDER_CHOICES = [('me', 'Me'), ('her', 'Her')]
+    content = models.TextField(max_length=2000)
+    sender = models.CharField(max_length=3, choices=SENDER_CHOICES)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'[{self.sender}] {self.content[:40]}'
+
+    class Meta:
+        ordering = ['sent_at']

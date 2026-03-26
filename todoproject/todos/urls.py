@@ -24,4 +24,10 @@ urlpatterns = [
     path('links/<str:pk>/delete/', views.link_delete, name='link_delete'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('us/', views.us_view, name='us'),
+    path('us/send/', views.us_send, name='us_send'),
+    path('us/poll/', views.us_poll, name='us_poll'),
+    path('chats/', views.chats_view, name='chats'),
+    path('chats/send/', views.chats_send, name='chats_send'),
+    path('chats/poll/', views.chats_poll, name='chats_poll'),
 ]
