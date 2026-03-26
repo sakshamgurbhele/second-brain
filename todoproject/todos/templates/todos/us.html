@@ -2,276 +2,428 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>us</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>us 💛</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg: #0d0d12;
-            --surface: #16161f;
-            --surface-2: #1e1e2a;
-            --border: #2a2a3a;
-            --rose: #fb7185;
-            --rose-dim: rgba(251,113,133,0.15);
-            --blue: #60a5fa;
-            --blue-dim: rgba(96,165,250,0.15);
-            --text: #f0f0f5;
-            --text-muted: #8b8b9e;
-            --text-faint: #3a3a4a;
-            --radius: 18px;
-            --radius-sm: 6px;
+            --bg: #0c0c14;
+            --surface: rgba(255,255,255,0.04);
+            --surface-solid: #18182a;
+            --border: rgba(255,255,255,0.08);
+            --rose: #ff4d7a;
+            --rose-2: #ff6b8a;
+            --rose-soft: rgba(255,77,122,0.15);
+            --him: #2d2b4e;
+            --him-border: rgba(124,111,255,0.3);
+            --him-accent: #7c6fff;
+            --text: #f5f0ff;
+            --text-muted: #9b93b8;
+            --text-faint: rgba(255,255,255,0.2);
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Ambient background ─────────────────────────────── */
+        .bg-glow {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-glow::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,77,122,0.12) 0%, transparent 70%);
+            animation: drift 8s ease-in-out infinite alternate;
+        }
+
+        .bg-glow::after {
+            content: '';
+            position: absolute;
+            bottom: -10%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(124,111,255,0.1) 0%, transparent 70%);
+            animation: drift 10s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 20px); }
         }
 
         /* ── Gate ─────────────────────────────────────────── */
-        .gate {
+        .gate-wrap {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 360px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 32px 24px;
+        }
+
+        .gate-card {
             width: 100%;
-            max-width: 380px;
-        }
-
-        .gate-heart {
-            font-size: 52px;
-            margin-bottom: 24px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-        }
-
-        .gate h1 {
-            font-size: 22px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 8px;
-            text-align: center;
-        }
-
-        .gate p {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
-        .gate-form {
-            width: 100%;
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 40px 32px 36px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+        }
+
+        .gate-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            display: block;
+            animation: heartbeat 2.4s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            14% { transform: scale(1.12); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.06); }
+            56% { transform: scale(1); }
+        }
+
+        .gate-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .gate-sub {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 28px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .gate-input-wrap {
+            width: 100%;
+            position: relative;
+            margin-bottom: 12px;
         }
 
         .gate-input {
             width: 100%;
-            padding: 15px 18px;
-            background: var(--surface);
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.06);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
             color: var(--text);
             font-size: 16px;
-            font-family: inherit;
+            font-family: var(--font);
             outline: none;
-            transition: border-color 0.2s;
             text-align: center;
             letter-spacing: 0.5px;
+            transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
         }
 
-        .gate-input:focus { border-color: var(--rose); }
-        .gate-input::placeholder { color: var(--text-faint); letter-spacing: 0; }
-        .gate-input.error { border-color: #f43f5e; }
+        .gate-input:focus {
+            border-color: var(--rose);
+            background: rgba(255,77,122,0.06);
+            box-shadow: 0 0 0 4px rgba(255,77,122,0.1);
+        }
+
+        .gate-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0; }
+        .gate-input.error { border-color: var(--rose); animation: shake 0.4s ease; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+        }
+
+        .gate-error-msg {
+            font-size: 12px;
+            color: var(--rose-2);
+            text-align: center;
+            margin-bottom: 8px;
+        }
 
         .gate-btn {
             width: 100%;
-            padding: 14px;
-            background: var(--rose);
+            padding: 16px;
+            background: linear-gradient(135deg, var(--rose-2), var(--rose));
             color: #fff;
             border: none;
-            border-radius: var(--radius-sm);
+            border-radius: 16px;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 700;
+            font-family: var(--font);
             cursor: pointer;
-            transition: opacity 0.2s;
+            letter-spacing: 0.3px;
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 8px 24px rgba(255,77,122,0.35);
         }
 
-        .gate-btn:hover { opacity: 0.9; }
+        .gate-btn:hover { opacity: 0.92; box-shadow: 0 12px 32px rgba(255,77,122,0.45); }
+        .gate-btn:active { transform: scale(0.97); }
 
-        .gate-error {
-            font-size: 13px;
-            color: #f43f5e;
-            text-align: center;
-            margin-top: 4px;
-        }
-
-        /* ── Chat ─────────────────────────────────────────── */
+        /* ── Chat shell ─────────────────────────────────────── */
         .chat-shell {
+            position: relative;
+            z-index: 1;
             display: flex;
             flex-direction: column;
             width: 100%;
-            max-width: 520px;
+            max-width: 480px;
             height: 100vh;
             height: 100dvh;
         }
 
+        /* Header */
         .chat-header {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 16px 20px;
-            background: var(--surface);
+            padding: 14px 20px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
 
-        .chat-avatar {
-            width: 36px;
-            height: 36px;
+        .avatar-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #fb7185, #f43f5e);
+            background: linear-gradient(135deg, var(--rose-2), var(--rose));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
+            font-size: 18px;
+            box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px rgba(255,77,122,0.35);
         }
 
-        .chat-header-info h2 {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .chat-header-info span {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .online-dot {
-            width: 8px;
-            height: 8px;
+        .avatar-status {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 11px;
+            height: 11px;
             background: #4ade80;
             border-radius: 50%;
-            margin-left: auto;
-            flex-shrink: 0;
+            border: 2px solid var(--bg);
         }
 
+        .header-info { flex: 1; }
+
+        .header-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.2px;
+        }
+
+        .header-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .header-lock {
+            color: var(--text-faint);
+            display: flex;
+            align-items: center;
+        }
+
+        /* Messages area */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 16px;
+            overflow-x: hidden;
+            padding: 16px 14px 8px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            scroll-behavior: smooth;
+            gap: 3px;
+            -webkit-overflow-scrolling: touch;
         }
 
-        .chat-messages::-webkit-scrollbar { width: 4px; }
-        .chat-messages::-webkit-scrollbar-track { background: transparent; }
-        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .chat-messages::-webkit-scrollbar { width: 3px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 
-        .bubble-row {
+        /* Date separator */
+        .date-sep {
             display: flex;
-            flex-direction: column;
-            max-width: 78%;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0 6px;
         }
 
-        .bubble-row.mine { align-self: flex-end; align-items: flex-end; }
-        .bubble-row.theirs { align-self: flex-start; align-items: flex-start; }
-
-        .bubble {
-            padding: 10px 14px;
-            border-radius: 18px;
-            font-size: 15px;
-            line-height: 1.45;
-            word-break: break-word;
+        .date-sep::before, .date-sep::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
 
-        .bubble-row.mine .bubble {
-            background: linear-gradient(135deg, #fb7185, #f43f5e);
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-
-        .bubble-row.theirs .bubble {
-            background: var(--surface-2);
-            color: var(--text);
-            border-bottom-left-radius: 4px;
+        .date-sep span {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            padding: 2px 10px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 20px;
             border: 1px solid var(--border);
         }
 
-        .bubble-time {
-            font-size: 11px;
-            color: var(--text-faint);
-            margin-top: 3px;
-            padding: 0 4px;
+        /* Bubble rows */
+        .bubble-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.85) translateY(6px); }
+            to   { opacity: 1; transform: scale(1)    translateY(0); }
+        }
+
+        .bubble-row.mine  { align-self: flex-end;   align-items: flex-end;   margin-left: 20%; }
+        .bubble-row.theirs { align-self: flex-start; align-items: flex-start; margin-right: 20%; }
+
+        .bubble-row + .bubble-row.mine   { margin-top: 2px; }
+        .bubble-row + .bubble-row.theirs { margin-top: 2px; }
+        .bubble-row.mine  + .bubble-row.theirs { margin-top: 10px; }
+        .bubble-row.theirs + .bubble-row.mine  { margin-top: 10px; }
+
+        .bubble {
+            padding: 10px 15px;
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-word;
+            position: relative;
+        }
+
+        /* Her bubble (mine = she sent) */
+        .bubble-row.mine .bubble {
+            background: linear-gradient(135deg, #ff6b8a 0%, #ff3d68 100%);
+            color: #fff;
+            border-radius: 20px 20px 5px 20px;
+            box-shadow: 0 4px 16px rgba(255,61,104,0.3);
+        }
+
+        /* His bubble (theirs = he sent) */
+        .bubble-row.theirs .bubble {
+            background: var(--him);
+            color: var(--text);
+            border-radius: 20px 20px 20px 5px;
+            border: 1px solid var(--him-border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .bubble-time {
+            font-size: 10px;
+            color: var(--text-faint);
+            margin-top: 4px;
+            padding: 0 6px;
+        }
+
+        /* Empty state */
         .chat-empty {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            color: var(--text-muted);
-            font-size: 14px;
+            gap: 10px;
+            padding: 40px 20px;
         }
 
-        .chat-empty-icon { font-size: 40px; }
+        .chat-empty-icon { font-size: 48px; }
+        .chat-empty-text { font-size: 15px; color: var(--text-muted); text-align: center; }
+        .chat-empty-hint { font-size: 13px; color: var(--text-faint); text-align: center; }
 
+        /* Input area */
         .chat-input-area {
-            padding: 12px 16px;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
-            background: var(--surface);
+            padding: 10px 14px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-top: 1px solid var(--border);
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: flex-end;
             flex-shrink: 0;
         }
 
         .chat-textarea {
             flex: 1;
-            padding: 11px 14px;
-            background: var(--surface-2);
-            border: 1.5px solid var(--border);
-            border-radius: 22px;
+            padding: 11px 16px;
+            background: rgba(255,255,255,0.07);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
             color: var(--text);
             font-size: 15px;
-            font-family: inherit;
+            font-family: var(--font);
             outline: none;
             resize: none;
-            max-height: 120px;
+            max-height: 110px;
             min-height: 44px;
-            line-height: 1.4;
-            transition: border-color 0.2s;
-            overflow-y: auto;
+            line-height: 1.45;
+            transition: border-color 0.2s, background 0.2s;
+            -webkit-appearance: none;
         }
 
-        .chat-textarea:focus { border-color: var(--rose); }
-        .chat-textarea::placeholder { color: var(--text-faint); }
+        .chat-textarea:focus {
+            border-color: rgba(255,77,122,0.5);
+            background: rgba(255,77,122,0.05);
+        }
+
+        .chat-textarea::placeholder { color: rgba(255,255,255,0.22); }
 
         .send-btn {
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: var(--rose);
+            background: linear-gradient(135deg, var(--rose-2), var(--rose));
             border: none;
             color: #fff;
             cursor: pointer;
@@ -279,76 +431,108 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 4px 14px rgba(255,77,122,0.4);
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
         }
 
-        .send-btn:hover { opacity: 0.9; }
-        .send-btn:active { transform: scale(0.93); }
-        .send-btn:disabled { opacity: 0.4; cursor: default; }
+        .send-btn:active { transform: scale(0.9); }
 
-        .sending-indicator {
+        .send-btn:disabled {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+            cursor: default;
+        }
+
+        .send-btn:disabled svg { opacity: 0.4; }
+
+        /* New message toast */
+        .new-msg-toast {
             position: fixed;
-            bottom: 80px;
+            bottom: 90px;
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 6px 16px;
+            transform: translateX(-50%) translateY(10px);
+            background: var(--him);
+            border: 1px solid var(--him-border);
             border-radius: 20px;
-            font-size: 12px;
-            color: var(--text-muted);
+            padding: 8px 18px;
+            font-size: 13px;
+            color: var(--text);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: opacity 0.25s, transform 0.25s;
             pointer-events: none;
+            white-space: nowrap;
+            z-index: 10;
         }
 
-        .sending-indicator.show { opacity: 1; }
+        .new-msg-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 </head>
 <body>
 
+<div class="bg-glow"></div>
+
 {% if gate %}
-<!-- Passphrase Gate -->
-<div class="gate">
-    <div class="gate-heart">💌</div>
-    <h1>hey, it's just us</h1>
-    <p>enter the passphrase to open the chat</p>
-    <form class="gate-form" method="post" action="{% url 'us' %}">
-        {% csrf_token %}
-        <input
-            class="gate-input {% if error %}error{% endif %}"
-            type="text"
-            name="passphrase"
-            placeholder="type it here…"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="none"
-            autofocus
-        >
-        {% if error %}
-        <p class="gate-error">that's not quite right, try again</p>
-        {% endif %}
-        <button class="gate-btn" type="submit">open chat</button>
-    </form>
+<!-- ── Passphrase Gate ───────────────────────────────────── -->
+<div class="gate-wrap">
+    <div class="gate-card">
+        <span class="gate-icon">💌</span>
+        <h1 class="gate-title">just for us</h1>
+        <p class="gate-sub">enter the secret word to open your chat</p>
+
+        <form method="post" action="{% url 'us' %}" style="width:100%">
+            {% csrf_token %}
+            <div class="gate-input-wrap">
+                <input
+                    class="gate-input {% if error %}error{% endif %}"
+                    type="text"
+                    name="passphrase"
+                    placeholder="whisper it here…"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    autofocus
+                >
+            </div>
+            {% if error %}
+            <p class="gate-error-msg">hmm, that's not right — try again</p>
+            {% endif %}
+            <button class="gate-btn" type="submit">open our chat</button>
+        </form>
+    </div>
 </div>
 
 {% else %}
-<!-- Chat UI -->
+<!-- ── Chat UI ───────────────────────────────────────────── -->
 <div class="chat-shell">
+
     <div class="chat-header">
-        <div class="chat-avatar">💛</div>
-        <div class="chat-header-info">
-            <h2>just us</h2>
-            <span>private &amp; just for you two</span>
+        <div class="avatar-wrap">
+            <div class="avatar">💛</div>
+            <div class="avatar-status"></div>
         </div>
-        <div class="online-dot" title="connected"></div>
+        <div class="header-info">
+            <div class="header-name">Saksham</div>
+            <div class="header-sub" id="header-sub">just you two · private</div>
+        </div>
+        <div class="header-lock">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="7" width="10" height="8" rx="2"/>
+                <path d="M5 7V5a3 3 0 016 0v2"/>
+            </svg>
+        </div>
     </div>
 
     <div class="chat-messages" id="chat-messages">
         {% if not messages %}
-        <div class="chat-empty">
+        <div class="chat-empty" id="empty-state">
             <span class="chat-empty-icon">💬</span>
-            <span>say something, it'll reach him</span>
+            <p class="chat-empty-text">say hi — he'll see it at work</p>
+            <p class="chat-empty-hint">messages are just between you two</p>
         </div>
         {% else %}
         {% for msg in messages %}
@@ -364,7 +548,7 @@
         <textarea
             class="chat-textarea"
             id="msg-input"
-            placeholder="type a message…"
+            placeholder="message Saksham…"
             rows="1"
             maxlength="2000"
         ></textarea>
@@ -376,40 +560,41 @@
     </div>
 </div>
 
-<div class="sending-indicator" id="sending-indicator">sending…</div>
+<div class="new-msg-toast" id="new-msg-toast">💛 new message from him</div>
 
 <script>
-    const input = document.getElementById('msg-input');
+    const input   = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
-    const chatEl = document.getElementById('chat-messages');
-    const indicator = document.getElementById('sending-indicator');
+    const chatEl  = document.getElementById('chat-messages');
+    const toast   = document.getElementById('new-msg-toast');
+    const CSRF    = '{{ csrf_token }}';
 
     // Scroll to bottom
-    function scrollBottom() {
-        chatEl.scrollTop = chatEl.scrollHeight;
+    function scrollBottom(smooth = false) {
+        chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
     }
     scrollBottom();
 
-    // Track rendered message IDs to prevent duplicates
+    // Dedupe Set
     const renderedIds = new Set(
         [...chatEl.querySelectorAll('[data-id]')].map(el => el.dataset.id)
     );
 
-    // Track last message timestamp for polling
+    // Last timestamp
     let lastTs = (() => {
         const rows = chatEl.querySelectorAll('[data-ts]');
         if (!rows.length) return 0;
         return parseFloat(rows[rows.length - 1].dataset.ts) || 0;
     })();
 
-    // Auto-resize textarea
+    // Auto-resize
     input.addEventListener('input', () => {
         input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        input.style.height = Math.min(input.scrollHeight, 110) + 'px';
         sendBtn.disabled = !input.value.trim();
     });
 
-    // Send on Enter (not Shift+Enter)
+    // Enter to send
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -419,26 +604,30 @@
 
     sendBtn.addEventListener('click', sendMessage);
 
-    const CSRF = '{{ csrf_token }}';
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
     function renderBubble(msg) {
-        if (msg.id && renderedIds.has(msg.id)) return;
-        if (msg.id) renderedIds.add(msg.id);
+        if (msg.id && renderedIds.has(String(msg.id))) return;
+        if (msg.id) renderedIds.add(String(msg.id));
+
+        const empty = document.getElementById('empty-state');
+        if (empty) empty.remove();
 
         const row = document.createElement('div');
         row.className = 'bubble-row ' + (msg.sender === 'her' ? 'mine' : 'theirs');
-        if (msg.id) row.dataset.id = msg.id;
-        row.dataset.ts = msg.ts || '';
+        if (msg.id) row.dataset.id = String(msg.id);
+        if (msg.ts) row.dataset.ts = String(msg.ts);
+
         row.innerHTML = `<div class="bubble">${escHtml(msg.content)}</div><span class="bubble-time">${msg.time}</span>`;
-
-        const empty = chatEl.querySelector('.chat-empty');
-        if (empty) empty.remove();
-
         chatEl.appendChild(row);
     }
 
-    function escHtml(s) {
-        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
     async function sendMessage() {
@@ -446,7 +635,8 @@
         if (!content) return;
 
         sendBtn.disabled = true;
-        indicator.classList.add('show');
+        input.value = '';
+        input.style.height = 'auto';
 
         const form = new FormData();
         form.append('content', content);
@@ -456,33 +646,35 @@
             const res = await fetch('{% url "us_send" %}', { method: 'POST', body: form });
             if (res.ok) {
                 const data = await res.json();
-                input.value = '';
-                input.style.height = 'auto';
                 renderBubble(data);
                 if (data.ts) lastTs = data.ts;
-                scrollBottom();
+                scrollBottom(true);
             }
         } catch (e) { /* network error */ }
 
-        indicator.classList.remove('show');
         sendBtn.disabled = false;
         input.focus();
     }
 
-    // Poll for new messages from him every 15 seconds
+    // Poll every 15 seconds for his replies
     async function pollMessages() {
         try {
             const res = await fetch(`{% url "us_poll" %}?after=${lastTs}`);
             if (!res.ok) return;
             const data = await res.json();
-            if (data.messages && data.messages.length) {
-                const wasAtBottom = chatEl.scrollTop + chatEl.clientHeight >= chatEl.scrollHeight - 40;
-                data.messages.forEach(m => {
-                    renderBubble(m);
-                    if (m.ts) lastTs = Math.max(lastTs, m.ts);
-                });
-                if (wasAtBottom) scrollBottom();
-            }
+            if (!data.messages || !data.messages.length) return;
+
+            const wasAtBottom = chatEl.scrollTop + chatEl.clientHeight >= chatEl.scrollHeight - 60;
+            let gotHisMsg = false;
+
+            data.messages.forEach(m => {
+                renderBubble(m);
+                if (m.ts) lastTs = Math.max(lastTs, m.ts);
+                if (m.sender === 'me') gotHisMsg = true;
+            });
+
+            if (wasAtBottom) scrollBottom(true);
+            if (gotHisMsg) showToast('💛 new message from him');
         } catch (e) { /* ignore */ }
     }
 
