@@ -310,8 +310,25 @@ def us_view(request):
 
     # Mark his unread messages as read since she opened the chat
     ChatMessage.objects.filter(sender='me', is_read=False).update(is_read=True)
+    cache.set('her_last_seen', timezone.now().timestamp(), 300)
     messages = ChatMessage.objects.all()
     return render(request, 'todos/us.html', {'gate': False, 'messages': messages})
+
+
+ALLOWED_IMAGE_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+def _handle_image(request):
+    """Validate and return the uploaded image file, or None. Returns (file, error_response)."""
+    image = request.FILES.get('image')
+    if not image:
+        return None, None
+    if image.size > MAX_IMAGE_SIZE:
+        return None, JsonResponse({'error': 'Image too large (max 5 MB)'}, status=400)
+    if image.content_type not in ALLOWED_IMAGE_TYPES:
+        return None, JsonResponse({'error': 'Only JPEG, PNG, GIF and WebP images are allowed'}, status=400)
+    return image, None
 
 
 @require_POST
@@ -320,16 +337,21 @@ def us_send(request):
     if not request.session.get('us_auth'):
         return JsonResponse({'error': 'unauthorized'}, status=403)
     content = request.POST.get('content', '').strip()[:2000]
-    if content:
-        msg = ChatMessage.objects.create(content=content, sender='her')
-        return JsonResponse({
-            'id': str(msg.pk),
-            'content': msg.content,
-            'sender': msg.sender,
-            'time': msg.sent_at.strftime('%I:%M %p'),
-            'ts': msg.sent_at.timestamp(),
-        })
-    return JsonResponse({'error': 'empty'}, status=400)
+    image, err = _handle_image(request)
+    if err:
+        return err
+    if not content and not image:
+        return JsonResponse({'error': 'empty'}, status=400)
+    msg = ChatMessage.objects.create(content=content, sender='her', image=image)
+    return JsonResponse({
+        'id': str(msg.pk),
+        'content': msg.content,
+        'sender': msg.sender,
+        'ts': msg.sent_at.timestamp(),
+        'is_read': msg.is_read,
+        'reaction': msg.reaction,
+        'image_url': msg.image.url if msg.image else None,
+    })
 
 
 def us_poll(request):
@@ -345,18 +367,32 @@ def us_poll(request):
             qs = qs.filter(sent_at__gt=ts)
         except (ValueError, OSError):
             pass
-    # Also mark his messages as read
+    # Mark his messages as read since she's polling
     ChatMessage.objects.filter(sender='me', is_read=False).update(is_read=True)
+    # last of her messages that he has read (for "Seen" receipt on her page)
+    last_seen = ChatMessage.objects.filter(sender='her', is_read=True).order_by('-sent_at').first()
+    # Online tracking
+    now_ts = timezone.now().timestamp()
+    cache.set('her_last_seen', now_ts, 300)
+    his_last = cache.get('his_last_seen', 0)
+    his_online = (now_ts - his_last) < 30
     data = [{'id': str(m.pk), 'content': m.content, 'sender': m.sender,
-             'time': m.sent_at.strftime('%I:%M %p'),
-             'ts': m.sent_at.timestamp()} for m in qs]
-    return JsonResponse({'messages': data})
+             'ts': m.sent_at.timestamp(), 'is_read': m.is_read,
+             'reaction': m.reaction,
+             'image_url': m.image.url if m.image else None} for m in qs]
+    return JsonResponse({
+        'messages': data,
+        'last_seen_id': str(last_seen.pk) if last_seen else None,
+        'his_online': his_online,
+        'his_last_seen': his_last,
+    })
 
 
 @login_required
 def chats_view(request):
     """His chat inbox. Marks all her messages as read."""
     ChatMessage.objects.filter(sender='her', is_read=False).update(is_read=True)
+    cache.set('his_last_seen', timezone.now().timestamp(), 300)
     messages = ChatMessage.objects.all()
     return render(request, 'todos/chats.html', {'messages': messages})
 
@@ -366,15 +402,21 @@ def chats_view(request):
 def chats_send(request):
     """He sends a reply."""
     content = request.POST.get('content', '').strip()[:2000]
-    if content:
-        msg = ChatMessage.objects.create(content=content, sender='me')
-        return JsonResponse({
-            'id': str(msg.pk),
-            'content': msg.content,
-            'sender': msg.sender,
-            'time': msg.sent_at.strftime('%I:%M %p'),
-        })
-    return JsonResponse({'error': 'empty'}, status=400)
+    image, err = _handle_image(request)
+    if err:
+        return err
+    if not content and not image:
+        return JsonResponse({'error': 'empty'}, status=400)
+    msg = ChatMessage.objects.create(content=content, sender='me', image=image)
+    return JsonResponse({
+        'id': str(msg.pk),
+        'content': msg.content,
+        'sender': msg.sender,
+        'ts': msg.sent_at.timestamp(),
+        'is_read': msg.is_read,
+        'reaction': msg.reaction,
+        'image_url': msg.image.url if msg.image else None,
+    })
 
 
 @login_required
@@ -391,7 +433,47 @@ def chats_poll(request):
             pass
     # Mark her new messages as read since he's polling
     ChatMessage.objects.filter(sender='her', is_read=False).update(is_read=True)
+    # last of his messages that she has read (for "Seen" receipt on his page)
+    last_seen = ChatMessage.objects.filter(sender='me', is_read=True).order_by('-sent_at').first()
+    # Online tracking
+    now_ts = timezone.now().timestamp()
+    cache.set('his_last_seen', now_ts, 300)
+    her_last = cache.get('her_last_seen', 0)
+    her_online = (now_ts - her_last) < 30
     data = [{'id': str(m.pk), 'content': m.content, 'sender': m.sender,
-             'time': m.sent_at.strftime('%I:%M %p'),
-             'ts': m.sent_at.timestamp()} for m in qs]
-    return JsonResponse({'messages': data})
+             'ts': m.sent_at.timestamp(), 'is_read': m.is_read,
+             'reaction': m.reaction,
+             'image_url': m.image.url if m.image else None} for m in qs]
+    return JsonResponse({
+        'messages': data,
+        'last_seen_id': str(last_seen.pk) if last_seen else None,
+        'her_online': her_online,
+        'her_last_seen': her_last,
+    })
+
+
+@require_POST
+def us_react(request, pk):
+    if not request.session.get('us_auth'):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    emoji = request.POST.get('reaction', '').strip()[:10]
+    try:
+        msg = ChatMessage.objects.get(pk=pk)
+        msg.reaction = emoji
+        msg.save()
+        return JsonResponse({'ok': True, 'reaction': msg.reaction})
+    except ChatMessage.DoesNotExist:
+        return JsonResponse({'error': 'not found'}, status=404)
+
+
+@login_required
+@require_POST
+def chats_react(request, pk):
+    emoji = request.POST.get('reaction', '').strip()[:10]
+    try:
+        msg = ChatMessage.objects.get(pk=pk)
+        msg.reaction = emoji
+        msg.save()
+        return JsonResponse({'ok': True, 'reaction': msg.reaction})
+    except ChatMessage.DoesNotExist:
+        return JsonResponse({'error': 'not found'}, status=404)

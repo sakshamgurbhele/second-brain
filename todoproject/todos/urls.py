@@ -30,4 +30,6 @@ urlpatterns = [
     path('chats/', views.chats_view, name='chats'),
     path('chats/send/', views.chats_send, name='chats_send'),
     path('chats/poll/', views.chats_poll, name='chats_poll'),
+    path('us/react/<str:pk>/', views.us_react, name='us_react'),
+    path('chats/react/<str:pk>/', views.chats_react, name='chats_react'),
 ]

@@ -246,10 +246,12 @@
             right: 0;
             width: 11px;
             height: 11px;
-            background: #4ade80;
+            background: var(--text-faint);
             border-radius: 50%;
             border: 2px solid var(--bg);
+            transition: background 0.3s;
         }
+        .avatar-status.online { background: #4ade80; }
 
         .header-info { flex: 1; }
 
@@ -318,6 +320,7 @@
             flex-direction: column;
             max-width: 80%;
             animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
         }
 
         @keyframes popIn {
@@ -469,6 +472,105 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* Reaction badge */
+        .bubble-reaction {
+            font-size: 16px;
+            position: absolute;
+            bottom: -10px;
+            right: 8px;
+            background: var(--bg);
+            border-radius: 20px;
+            padding: 1px 4px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            line-height: 1.4;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .bubble-row.theirs .bubble-reaction { right: auto; left: 8px; }
+        .bubble { position: relative; }
+
+        /* Reaction picker */
+        .reaction-picker {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            right: 0;
+            background: var(--surface-solid);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 6px 10px;
+            display: flex;
+            gap: 6px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            z-index: 100;
+            animation: popIn 0.15s ease;
+        }
+        .bubble-row.theirs .reaction-picker { right: auto; left: 0; }
+        .reaction-picker span {
+            font-size: 20px;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 8px;
+            transition: transform 0.1s;
+            line-height: 1;
+        }
+        .reaction-picker span:hover { transform: scale(1.3); }
+
+        /* Read receipt */
+        .seen-label {
+            font-size: 10px;
+            color: var(--rose-2);
+            padding: 2px 6px;
+            align-self: flex-end;
+        }
+        .seen-label.delivered { opacity: 0.45; color: var(--text-muted); }
+        .seen-label.seen { opacity: 1; color: var(--rose-2); }
+
+        /* Chat image */
+        .bubble-img {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 12px;
+            display: block;
+            cursor: pointer;
+            object-fit: cover;
+        }
+        .bubble-img + .bubble-text { margin-top: 6px; }
+
+        /* Image preview */
+        .img-preview-wrap {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px 0;
+        }
+        .img-preview-wrap.visible { display: flex; }
+        .img-preview-thumb {
+            width: 56px; height: 56px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+        .img-preview-remove {
+            background: none; border: none;
+            color: var(--text-muted); cursor: pointer;
+            font-size: 18px; line-height: 1; padding: 2px;
+        }
+
+        /* Image button */
+        .img-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+        .img-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -536,15 +638,30 @@
         </div>
         {% else %}
         {% for msg in messages %}
-        <div class="bubble-row {% if msg.sender == 'her' %}mine{% else %}theirs{% endif %}" data-id="{{ msg.pk }}" data-ts="{{ msg.sent_at.timestamp }}">
-            <div class="bubble">{{ msg.content }}</div>
-            <span class="bubble-time">{{ msg.sent_at|date:"g:i A" }}</span>
+        <div class="bubble-row {% if msg.sender == 'her' %}mine{% else %}theirs{% endif %}" data-id="{{ msg.pk }}" data-ts="{{ msg.sent_at.timestamp }}" data-reaction="{{ msg.reaction }}">
+            <div class="bubble">
+                {% if msg.image %}<img class="bubble-img" src="{{ msg.image.url }}" loading="lazy">{% endif %}
+                {% if msg.content %}<span class="bubble-text">{{ msg.content }}</span>{% endif %}
+                {% if msg.reaction %}<span class="bubble-reaction">{{ msg.reaction }}</span>{% endif %}
+            </div>
+            <span class="bubble-time" data-ts="{{ msg.sent_at.timestamp }}"></span>
         </div>
         {% endfor %}
         {% endif %}
     </div>
 
+    <div class="img-preview-wrap" id="img-preview-wrap">
+        <img class="img-preview-thumb" id="img-preview-thumb" src="" alt="preview">
+        <button class="img-preview-remove" id="img-preview-remove">✕</button>
+    </div>
     <div class="chat-input-area">
+        <input type="file" id="img-input" accept="image/*" capture="environment" style="display:none">
+        <button class="img-btn" id="img-btn" type="button" title="Send photo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+            </svg>
+        </button>
         <textarea
             class="chat-textarea"
             id="msg-input"
@@ -563,6 +680,23 @@
 <div class="new-msg-toast" id="new-msg-toast">💛 new message from him</div>
 
 <script>
+    function formatTime(ts) {
+        if (!ts) return '';
+        return new Date(ts * 1000).toLocaleTimeString('en-US', {
+            timeZone: 'Asia/Kolkata',
+            hour: 'numeric', minute: '2-digit', hour12: true
+        });
+    }
+
+    function relativeTime(ts) {
+        if (!ts) return 'a while ago';
+        const diff = Math.floor((Date.now() / 1000) - ts);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+
     const input   = document.getElementById('msg-input');
     const sendBtn = document.getElementById('send-btn');
     const chatEl  = document.getElementById('chat-messages');
@@ -573,6 +707,10 @@
     function scrollBottom(smooth = false) {
         chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
     }
+    // Format all template-rendered timestamps in India timezone
+    chatEl.querySelectorAll('.bubble-time[data-ts]').forEach(el => {
+        el.textContent = formatTime(parseFloat(el.dataset.ts));
+    });
     scrollBottom();
 
     // Dedupe Set
@@ -591,7 +729,7 @@
     input.addEventListener('input', () => {
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 110) + 'px';
-        sendBtn.disabled = !input.value.trim();
+        sendBtn.disabled = !input.value.trim() && !selectedImage;
     });
 
     // Enter to send
@@ -620,8 +758,53 @@
         if (msg.id) row.dataset.id = String(msg.id);
         if (msg.ts) row.dataset.ts = String(msg.ts);
 
-        row.innerHTML = `<div class="bubble">${escHtml(msg.content)}</div><span class="bubble-time">${msg.time}</span>`;
+        const reactionHtml = msg.reaction ? `<span class="bubble-reaction">${msg.reaction}</span>` : '';
+        const imgHtml = msg.image_url ? `<img class="bubble-img" src="${msg.image_url}" loading="lazy">` : '';
+        const textHtml = msg.content ? `<span class="bubble-text">${escHtml(msg.content)}</span>` : '';
+        row.innerHTML = `<div class="bubble">${imgHtml}${textHtml}${reactionHtml}</div><span class="bubble-time">${formatTime(msg.ts)}</span>`;
+
+        row.querySelector('.bubble').addEventListener('click', (e) => {
+            if (e.target.classList.contains('bubble-reaction')) return;
+            if (e.target.classList.contains('bubble-img')) { window.open(msg.image_url); return; }
+            showReactionPicker(row, msg.id);
+        });
+
         chatEl.appendChild(row);
+    }
+
+    let activePicker = null;
+    function showReactionPicker(row, msgId) {
+        if (activePicker) { activePicker.remove(); activePicker = null; }
+        const EMOJIS = ['❤️','😂','😮','😢','👍'];
+        const picker = document.createElement('div');
+        picker.className = 'reaction-picker';
+        picker.innerHTML = EMOJIS.map(e => `<span data-emoji="${e}">${e}</span>`).join('');
+        picker.querySelectorAll('span').forEach(el => {
+            el.addEventListener('click', () => {
+                sendReaction(msgId, el.dataset.emoji, row);
+                picker.remove(); activePicker = null;
+            });
+        });
+        row.querySelector('.bubble').appendChild(picker);
+        activePicker = picker;
+        setTimeout(() => document.addEventListener('click', dismissPicker, {once: true}), 10);
+    }
+    function dismissPicker() { if (activePicker) { activePicker.remove(); activePicker = null; } }
+
+    async function sendReaction(msgId, emoji, row) {
+        const form = new FormData();
+        form.append('reaction', emoji);
+        form.append('csrfmiddlewaretoken', CSRF);
+        try {
+            const res = await fetch(`/us/react/${msgId}/`, {method: 'POST', body: form});
+            if (res.ok) {
+                // Update bubble reaction badge
+                const bubble = row.querySelector('.bubble');
+                let badge = bubble.querySelector('.bubble-reaction');
+                if (badge) badge.textContent = emoji;
+                else { badge = document.createElement('span'); badge.className = 'bubble-reaction'; badge.textContent = emoji; bubble.appendChild(badge); }
+            }
+        } catch(e) {}
     }
 
     function showToast(text) {
@@ -630,9 +813,35 @@
         setTimeout(() => toast.classList.remove('show'), 3500);
     }
 
+    // Image selection
+    let selectedImage = null;
+    const imgInput = document.getElementById('img-input');
+    const imgBtn = document.getElementById('img-btn');
+    const imgPreviewWrap = document.getElementById('img-preview-wrap');
+    const imgPreviewThumb = document.getElementById('img-preview-thumb');
+    const imgPreviewRemove = document.getElementById('img-preview-remove');
+
+    imgBtn.addEventListener('click', () => imgInput.click());
+    imgInput.addEventListener('change', () => {
+        const file = imgInput.files[0];
+        if (!file) return;
+        selectedImage = file;
+        imgPreviewThumb.src = URL.createObjectURL(file);
+        imgPreviewWrap.classList.add('visible');
+        sendBtn.disabled = false;
+    });
+    imgPreviewRemove.addEventListener('click', clearImage);
+    function clearImage() {
+        selectedImage = null;
+        imgInput.value = '';
+        imgPreviewWrap.classList.remove('visible');
+        imgPreviewThumb.src = '';
+        sendBtn.disabled = !input.value.trim() && !selectedImage;
+    }
+
     async function sendMessage() {
         const content = input.value.trim();
-        if (!content) return;
+        if (!content && !selectedImage) return;
 
         sendBtn.disabled = true;
         input.value = '';
@@ -641,6 +850,8 @@
         const form = new FormData();
         form.append('content', content);
         form.append('csrfmiddlewaretoken', CSRF);
+        if (selectedImage) form.append('image', selectedImage);
+        clearImage();
 
         try {
             const res = await fetch('{% url "us_send" %}', { method: 'POST', body: form });
@@ -648,12 +859,52 @@
                 const data = await res.json();
                 renderBubble(data);
                 if (data.ts) lastTs = data.ts;
+                showDeliveredLabel(data.id);
                 scrollBottom(true);
             }
         } catch (e) { /* network error */ }
 
         sendBtn.disabled = false;
         input.focus();
+    }
+
+    let currentSeenId = null;
+
+    function showDeliveredLabel(msgId) {
+        const old = chatEl.querySelector('.seen-label');
+        if (old) old.remove();
+        const row = chatEl.querySelector(`[data-id="${msgId}"]`);
+        if (!row) return;
+        const label = document.createElement('div');
+        label.className = 'seen-label delivered';
+        label.textContent = '✓ Delivered';
+        row.after(label);
+    }
+
+    function updateSeenLabel(seenId) {
+        if (seenId === currentSeenId) return;
+        currentSeenId = seenId;
+        const old = chatEl.querySelector('.seen-label');
+        if (old) old.remove();
+        const row = chatEl.querySelector(`[data-id="${seenId}"]`);
+        if (!row) return;
+        const label = document.createElement('div');
+        label.className = 'seen-label seen';
+        label.textContent = '✓✓ Seen';
+        row.after(label);
+    }
+
+    const avatarStatusDot = document.querySelector('.avatar-status');
+    const headerSub = document.getElementById('header-sub');
+
+    function updateHisStatus(online, lastSeen) {
+        if (online) {
+            avatarStatusDot.classList.add('online');
+            headerSub.textContent = 'Saksham is online';
+        } else {
+            avatarStatusDot.classList.remove('online');
+            headerSub.textContent = lastSeen ? `last seen ${relativeTime(lastSeen)}` : 'Khushii & Saksham · private';
+        }
     }
 
     // Poll for his replies
@@ -668,12 +919,25 @@
             }
             if (!res.ok) return;
             const data = await res.json();
+
+            // Update online status and read receipt
+            updateHisStatus(data.his_online, data.his_last_seen);
+            if (data.last_seen_id) updateSeenLabel(data.last_seen_id);
+
             if (!data.messages || !data.messages.length) return;
 
             const wasAtBottom = chatEl.scrollTop + chatEl.clientHeight >= chatEl.scrollHeight - 60;
             let gotHisMsg = false;
 
+            // Update reactions on existing messages
             data.messages.forEach(m => {
+                const existing = chatEl.querySelector(`[data-id="${m.id}"]`);
+                if (existing && m.reaction) {
+                    const bubble = existing.querySelector('.bubble');
+                    let badge = bubble.querySelector('.bubble-reaction');
+                    if (badge) badge.textContent = m.reaction;
+                    else if (m.reaction) { badge = document.createElement('span'); badge.className = 'bubble-reaction'; badge.textContent = m.reaction; bubble.appendChild(badge); }
+                }
                 renderBubble(m);
                 if (m.ts) lastTs = Math.max(lastTs, m.ts);
                 if (m.sender === 'me') gotHisMsg = true;
@@ -689,6 +953,9 @@
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) pollMessages();
     });
+
+    // Initial poll to get seen status
+    pollMessages();
 </script>
 {% endif %}
 

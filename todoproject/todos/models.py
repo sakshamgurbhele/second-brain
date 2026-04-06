@@ -95,10 +95,12 @@ class UploadedFile(models.Model):
 
 class ChatMessage(models.Model):
     SENDER_CHOICES = [('me', 'Me'), ('her', 'Her')]
-    content = models.TextField(max_length=2000)
+    content = models.TextField(max_length=2000, blank=True, default='')
     sender = models.CharField(max_length=3, choices=SENDER_CHOICES)
     sent_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    reaction = models.CharField(max_length=10, blank=True, default='')
+    image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
 
     def __str__(self):
         return f'[{self.sender}] {self.content[:40]}'

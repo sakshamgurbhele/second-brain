@@ -219,6 +219,118 @@
             .chat-messages { padding: 16px 20px; }
             .chat-input-area { padding: 12px 20px 16px; }
         }
+
+        /* Reaction badge */
+        .bubble-reaction {
+            font-size: 15px;
+            position: absolute;
+            bottom: -10px;
+            right: 8px;
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 1px 5px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            line-height: 1.4;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .bubble-row.hers .bubble-reaction { right: auto; left: 8px; }
+        .bubble { position: relative; }
+
+        /* Reaction picker */
+        .reaction-picker {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            right: 0;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 6px 10px;
+            display: flex;
+            gap: 6px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+        .bubble-row.hers .reaction-picker { right: auto; left: 0; }
+        .reaction-picker span {
+            font-size: 20px;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 8px;
+            transition: transform 0.1s;
+            line-height: 1;
+        }
+        .reaction-picker span:hover { transform: scale(1.3); }
+
+        /* Read receipt */
+        .seen-label {
+            font-size: 10px;
+            color: var(--accent);
+            padding: 2px 6px;
+            font-family: var(--font-mono);
+            align-self: flex-end;
+        }
+        .seen-label.delivered { opacity: 0.45; color: var(--text-muted); }
+        .seen-label.seen { opacity: 1; color: var(--accent); }
+
+        /* Chat image */
+        .bubble-img {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 12px;
+            display: block;
+            cursor: pointer;
+            object-fit: cover;
+        }
+        .bubble-img + .bubble-text { margin-top: 6px; }
+
+        /* Image preview in input */
+        .img-preview-wrap {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 32px 0;
+        }
+        .img-preview-wrap.visible { display: flex; }
+        .img-preview-thumb {
+            width: 56px; height: 56px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+        .img-preview-remove {
+            background: none; border: none; color: var(--text-muted);
+            cursor: pointer; font-size: 18px; line-height: 1; padding: 2px;
+        }
+        .img-preview-remove:hover { color: var(--danger); }
+
+        /* Image button */
+        .img-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .img-btn:hover { color: var(--text); border-color: var(--accent); }
+
+        /* Avatar with online dot */
+        .avatar-wrap { position: relative; flex-shrink: 0; }
+        .avatar-status-dot {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+            background: var(--text-faint);
+            transition: background 0.3s;
+        }
+        .avatar-status-dot.online { background: #4ade80; }
     </style>
 </head>
 <body>
@@ -270,7 +382,10 @@
     <!-- Main chat -->
     <main class="main">
         <div class="chat-header">
-            <div class="chat-avatar">💖</div>
+            <div class="avatar-wrap">
+                <div class="chat-avatar">💖</div>
+                <div class="avatar-status-dot" id="her-status-dot"></div>
+            </div>
             <div class="chat-header-info">
                 <h1>Chats <span id="new-dot" style="display:none;" class="new-msg-dot"></span></h1>
                 <p id="chat-status">just us hehihi &middot; private</p>
@@ -288,14 +403,30 @@
             {% for msg in messages %}
             <div class="bubble-row {% if msg.sender == 'me' %}mine{% else %}hers{% endif %}" data-id="{{ msg.pk }}" data-ts="{{ msg.sent_at.timestamp }}">
                 <span class="sender-label">{% if msg.sender == 'me' %}you{% else %}her{% endif %}</span>
-                <div class="bubble">{{ msg.content }}</div>
-                <span class="bubble-time">{{ msg.sent_at|date:"g:i A · M j" }}</span>
+                <div class="bubble">
+                    {% if msg.image %}<img class="bubble-img" src="{{ msg.image.url }}" loading="lazy">{% endif %}
+                    {% if msg.content %}<span class="bubble-text">{{ msg.content }}</span>{% endif %}
+                    {% if msg.reaction %}<span class="bubble-reaction">{{ msg.reaction }}</span>{% endif %}
+                </div>
+                <span class="bubble-time" data-ts="{{ msg.sent_at.timestamp }}"></span>
             </div>
             {% endfor %}
             {% endif %}
         </div>
 
+        <div class="img-preview-wrap" id="img-preview-wrap">
+            <img class="img-preview-thumb" id="img-preview-thumb" src="" alt="preview">
+            <button class="img-preview-remove" id="img-preview-remove" title="Remove image">✕</button>
+        </div>
         <div class="chat-input-area">
+            <input type="file" id="img-input" accept="image/*" style="display:none">
+            <button class="img-btn" id="img-btn" title="Send image" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="3" width="18" height="18" rx="3"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                </svg>
+            </button>
             <textarea
                 class="chat-textarea"
                 id="msg-input"
@@ -308,6 +439,20 @@
     </main>
 
     <script>
+        function formatTime(ts) {
+            if (!ts) return '';
+            const d = new Date(ts * 1000);
+            const time = d.toLocaleTimeString('en-US', {
+                timeZone: 'Europe/Dublin',
+                hour: 'numeric', minute: '2-digit', hour12: true
+            });
+            const date = d.toLocaleDateString('en-US', {
+                timeZone: 'Europe/Dublin',
+                month: 'short', day: 'numeric'
+            });
+            return `${time} · ${date}`;
+        }
+
         // Theme
         const html = document.documentElement;
         const btn = document.getElementById('theme-toggle');
@@ -325,6 +470,10 @@
         const newDot = document.getElementById('new-dot');
 
         function scrollBottom() { chatEl.scrollTop = chatEl.scrollHeight; }
+        // Format all template-rendered timestamps in Ireland timezone
+        chatEl.querySelectorAll('.bubble-time[data-ts]').forEach(el => {
+            el.textContent = formatTime(parseFloat(el.dataset.ts));
+        });
         scrollBottom();
 
         // Track rendered message IDs to prevent duplicates
@@ -337,6 +486,8 @@
             if (!rows.length) return 0;
             return parseFloat(rows[rows.length - 1].dataset.ts) || 0;
         })();
+
+        pollMessages();
 
         // Auto-resize textarea
         input.addEventListener('input', () => {
@@ -372,22 +523,97 @@
             if (msg.id) row.dataset.id = msg.id;
             row.dataset.ts = msg.ts || '';
             const label = msg.sender === 'me' ? 'you' : 'her';
+            const reactionHtml = msg.reaction ? `<span class="bubble-reaction">${msg.reaction}</span>` : '';
+            const imgHtml = msg.image_url ? `<img class="bubble-img" src="${msg.image_url}" loading="lazy">` : '';
+            const textHtml = msg.content ? `<span class="bubble-text">${escHtml(msg.content)}</span>` : '';
             row.innerHTML = `
                 <span class="sender-label">${label}</span>
-                <div class="bubble">${escHtml(msg.content)}</div>
-                <span class="bubble-time">${msg.time}</span>
+                <div class="bubble">${imgHtml}${textHtml}${reactionHtml}</div>
+                <span class="bubble-time">${formatTime(msg.ts)}</span>
             `;
+
+            row.querySelector('.bubble').addEventListener('click', (e) => {
+                if (e.target.classList.contains('bubble-reaction')) return;
+                if (e.target.classList.contains('bubble-img')) { openImage(msg.image_url); return; }
+                showReactionPicker(row, msg.id);
+            });
+
             chatEl.appendChild(row);
+        }
+
+        function openImage(url) {
+            const w = window.open(); w.document.write(`<img src="${url}" style="max-width:100%;max-height:100vh;">`);
+        }
+
+        let activePicker = null;
+        function showReactionPicker(row, msgId) {
+            if (activePicker) { activePicker.remove(); activePicker = null; }
+            const EMOJIS = ['❤️','😂','😮','😢','👍'];
+            const picker = document.createElement('div');
+            picker.className = 'reaction-picker';
+            picker.innerHTML = EMOJIS.map(e => `<span data-emoji="${e}">${e}</span>`).join('');
+            picker.querySelectorAll('span').forEach(el => {
+                el.addEventListener('click', () => {
+                    sendReaction(msgId, el.dataset.emoji, row);
+                    picker.remove(); activePicker = null;
+                });
+            });
+            row.querySelector('.bubble').appendChild(picker);
+            activePicker = picker;
+            setTimeout(() => document.addEventListener('click', dismissPicker, {once: true}), 10);
+        }
+        function dismissPicker() { if (activePicker) { activePicker.remove(); activePicker = null; } }
+
+        async function sendReaction(msgId, emoji, row) {
+            const form = new FormData();
+            form.append('reaction', emoji);
+            form.append('csrfmiddlewaretoken', CSRF);
+            try {
+                const res = await fetch(`/chats/react/${msgId}/`, {method: 'POST', body: form});
+                if (res.ok) {
+                    const bubble = row.querySelector('.bubble');
+                    let badge = bubble.querySelector('.bubble-reaction');
+                    if (badge) badge.textContent = emoji;
+                    else { badge = document.createElement('span'); badge.className = 'bubble-reaction'; badge.textContent = emoji; bubble.appendChild(badge); }
+                }
+            } catch(e) {}
+        }
+
+        // Image selection
+        let selectedImage = null;
+        const imgInput = document.getElementById('img-input');
+        const imgBtn = document.getElementById('img-btn');
+        const imgPreviewWrap = document.getElementById('img-preview-wrap');
+        const imgPreviewThumb = document.getElementById('img-preview-thumb');
+        const imgPreviewRemove = document.getElementById('img-preview-remove');
+
+        imgBtn.addEventListener('click', () => imgInput.click());
+        imgInput.addEventListener('change', () => {
+            const file = imgInput.files[0];
+            if (!file) return;
+            selectedImage = file;
+            imgPreviewThumb.src = URL.createObjectURL(file);
+            imgPreviewWrap.classList.add('visible');
+            sendBtn.disabled = false;
+        });
+        imgPreviewRemove.addEventListener('click', clearImage);
+        function clearImage() {
+            selectedImage = null;
+            imgInput.value = '';
+            imgPreviewWrap.classList.remove('visible');
+            imgPreviewThumb.src = '';
+            sendBtn.disabled = !input.value.trim();
         }
 
         async function sendMessage() {
             const content = input.value.trim();
-            if (!content) return;
+            if (!content && !selectedImage) return;
             sendBtn.disabled = true;
 
             const form = new FormData();
             form.append('content', content);
             form.append('csrfmiddlewaretoken', CSRF);
+            if (selectedImage) form.append('image', selectedImage);
 
             try {
                 const res = await fetch('{% url "chats_send" %}', { method: 'POST', body: form });
@@ -395,42 +621,99 @@
                     const data = await res.json();
                     input.value = '';
                     input.style.height = 'auto';
+                    clearImage();
                     renderBubble(data);
                     if (data.ts) lastTs = data.ts;
+                    showDeliveredLabel(data.id);
                     scrollBottom();
                 }
             } catch (e) { /* ignore */ }
 
-            sendBtn.disabled = !input.value.trim();
+            sendBtn.disabled = !input.value.trim() && !selectedImage;
         }
 
-        // Poll for new messages from her every 20 seconds
+        const herStatusDot = document.getElementById('her-status-dot');
+        const chatStatus = document.getElementById('chat-status');
+
+        function relativeTime(ts) {
+            if (!ts) return 'a while ago';
+            const diff = Math.floor((Date.now() / 1000) - ts);
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        function updateHerStatus(online, lastSeen) {
+            if (online) {
+                herStatusDot.classList.add('online');
+                chatStatus.textContent = 'Khushii is online';
+            } else {
+                herStatusDot.classList.remove('online');
+                chatStatus.textContent = lastSeen ? `last seen ${relativeTime(lastSeen)}` : 'just you two · private';
+            }
+        }
+
         async function pollMessages() {
             try {
                 const res = await fetch(`{% url "chats_poll" %}?after=${lastTs}`);
                 if (!res.ok) return;
                 const data = await res.json();
+                if (data.last_seen_id) updateSeenLabel(data.last_seen_id);
+                updateHerStatus(data.her_online, data.her_last_seen);
                 if (data.messages && data.messages.length) {
                     const wasAtBottom = chatEl.scrollTop + chatEl.clientHeight >= chatEl.scrollHeight - 60;
                     let hasHer = false;
                     data.messages.forEach(m => {
+                        const existing = chatEl.querySelector(`[data-id="${m.id}"]`);
+                        if (existing && m.reaction !== undefined) {
+                            const bubble = existing.querySelector('.bubble');
+                            let badge = bubble.querySelector('.bubble-reaction');
+                            if (m.reaction) {
+                                if (badge) badge.textContent = m.reaction;
+                                else { badge = document.createElement('span'); badge.className = 'bubble-reaction'; badge.textContent = m.reaction; bubble.appendChild(badge); }
+                            }
+                        }
                         renderBubble(m);
                         if (m.ts) lastTs = Math.max(lastTs, m.ts);
                         if (m.sender === 'her') hasHer = true;
                     });
                     if (wasAtBottom) scrollBottom();
                     if (hasHer) {
-                        // Flash dot briefly for new message
                         newDot.style.display = 'inline-block';
                         setTimeout(() => { newDot.style.display = 'none'; }, 4000);
-                        document.getElementById('chat-status').textContent = 'new message received';
-                        setTimeout(() => { document.getElementById('chat-status').textContent = 'just you two · private'; }, 4000);
                     }
                 }
             } catch (e) { /* ignore */ }
         }
 
-        setInterval(pollMessages, 20000);
+        let currentSeenId = null;
+
+        function showDeliveredLabel(msgId) {
+            const old = chatEl.querySelector('.seen-label');
+            if (old) old.remove();
+            const row = chatEl.querySelector(`[data-id="${msgId}"]`);
+            if (!row) return;
+            const label = document.createElement('div');
+            label.className = 'seen-label delivered';
+            label.textContent = '✓ Delivered';
+            row.after(label);
+        }
+
+        function updateSeenLabel(seenId) {
+            if (seenId === currentSeenId) return;
+            currentSeenId = seenId;
+            const old = chatEl.querySelector('.seen-label');
+            if (old) old.remove();
+            const row = chatEl.querySelector(`[data-id="${seenId}"]`);
+            if (!row) return;
+            const label = document.createElement('div');
+            label.className = 'seen-label seen';
+            label.textContent = '✓✓ Seen';
+            row.after(label);
+        }
+
+        setInterval(pollMessages, 5000);
     </script>
 
 </body>

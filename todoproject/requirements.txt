@@ -2,4 +2,5 @@ asgiref==3.11.1
 Django==6.0.3
 django-axes==8.3.1
 django-mongodb-backend
+Pillow==12.2.0
 sqlparse==0.5.5
