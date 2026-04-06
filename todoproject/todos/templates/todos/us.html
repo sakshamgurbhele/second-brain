@@ -619,7 +619,7 @@
         </div>
         <div class="header-info">
             <div class="header-name">Saksham</div>
-            <div class="header-sub" id="header-sub">Khushii &amp; Saksham · private</div>
+            <div class="header-sub" id="header-sub">just us hehaha 🩷</div>
         </div>
         <div class="header-lock">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -884,14 +884,26 @@
     function updateSeenLabel(seenId) {
         if (seenId === currentSeenId) return;
         currentSeenId = seenId;
+
+        const seenRow = chatEl.querySelector(`[data-id="${seenId}"]`);
+        const deliveredLabel = chatEl.querySelector('.seen-label.delivered');
+
+        // If there's a "Delivered" label on a newer message, don't replace it
+        if (seenRow && deliveredLabel) {
+            const deliveredRow = deliveredLabel.previousElementSibling;
+            if (deliveredRow && deliveredRow !== seenRow &&
+                (seenRow.compareDocumentPosition(deliveredRow) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                return;
+            }
+        }
+
         const old = chatEl.querySelector('.seen-label');
         if (old) old.remove();
-        const row = chatEl.querySelector(`[data-id="${seenId}"]`);
-        if (!row) return;
+        if (!seenRow) return;
         const label = document.createElement('div');
         label.className = 'seen-label seen';
         label.textContent = '✓✓ Seen';
-        row.after(label);
+        seenRow.after(label);
     }
 
     const avatarStatusDot = document.querySelector('.avatar-status');
@@ -903,7 +915,7 @@
             headerSub.textContent = 'Saksham is online';
         } else {
             avatarStatusDot.classList.remove('online');
-            headerSub.textContent = lastSeen ? `last seen ${relativeTime(lastSeen)}` : 'Khushii & Saksham · private';
+            headerSub.textContent = lastSeen ? `last seen ${relativeTime(lastSeen)}` : 'just us hehaha 🩷';
         }
     }
 
